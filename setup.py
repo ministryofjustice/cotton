@@ -18,6 +18,7 @@ setup(
     install_requires=[
         'fabric',
         'boto',
+        'ipython',
     ],
     classifiers=[
     ],

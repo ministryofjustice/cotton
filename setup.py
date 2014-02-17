@@ -19,6 +19,8 @@ setup(
         'fabric',
         'boto',
         'ipython',
+        'jinja2',
+        'python-dateutil',
     ],
     classifiers=[
     ],

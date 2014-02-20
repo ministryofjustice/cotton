@@ -1,3 +1,4 @@
+from __future__ import print_function
 from __future__ import absolute_import
 try:
     from texttable import Texttable as TextTable, bcolors
@@ -23,4 +24,4 @@ try:
     bcolors.WHITE_BOLD = '\033[1;37m'
 
 except ImportError:
-    print "Error importing texttable - no support for VMWare"
+    print("Error importing texttable - no support for VMWare")

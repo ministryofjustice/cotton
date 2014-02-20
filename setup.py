@@ -21,6 +21,7 @@ setup(
         'ipython',
         'jinja2',
         'python-dateutil',
+        'pyyaml',
     ],
     classifiers=[
     ],

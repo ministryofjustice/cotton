@@ -1,33 +1,86 @@
+from __future__ import print_function
+import yaml
 import os
-import sys
+import copy
 from fabric.api import env
+from cotton.colors import *
 """
-takes config from "/etc/config" (jenkins server usage)
-or assumes that your config directory is next to directory containing fabfile.py:
-
 root/
 |-- application-deployment/
 |   `-- fabfile.py
-`-- config/
+|-- config.user/config.yaml
+`-- config/config.yaml
+`-- config/projects/{project}/config.yaml
 
 """
+#TODO: add /etc/cotton/config.yaml support
 
 
-def file_readable(filename):
-    try:
-        with open(filename):
-            pass
-        return True
-    except IOError:
-        return False
+def dict_deepmerge(source, target):
+    """
+    deep merges two dictionaries and returns merged value
+    a is merged on top of b (think python inheritance pattern)
+    """
+    assert isinstance(source, dict)
+    assert isinstance(target, dict)
+
+    if not target:
+        return source.copy()
+
+    merged = copy.deepcopy(target)
+
+    for k, v in source.iteritems():
+        if k in merged and isinstance(v, dict) and isinstance(merged[k], dict):
+            merged[k] = dict_deepmerge(v, merged[k])
+        else:
+            merged[k] = copy.deepcopy(v)
+
+    return merged
 
 
-CONFIG_DIR = "/etc/cotton"
-if CONFIG_DIR not in sys.path and os.path.isdir(CONFIG_DIR) and file_readable(os.path.join(CONFIG_DIR, "__init__.py")):
-    sys.path.append(CONFIG_DIR)
-else:
-    CONFIG_DIR = os.path.abspath(os.path.join(os.path.dirname(env['real_fabfile']), "../config"))
-    if CONFIG_DIR not in sys.path:
-        sys.path.append(CONFIG_DIR)
+def _load_config_file(path):
+    fab_location = os.path.dirname(env['real_fabfile'])
+    config_location = os.path.abspath(os.path.join(fab_location, path))
 
-print("Config directory: {}".format(CONFIG_DIR))
+    with open(config_location) as f:
+        return yaml.load(f)
+
+
+def get_config():
+    """
+    merges user config with global config and project config
+    """
+    if '__config' in env and env.__config:
+        return env.__config
+
+    config_files = ['../config.user/config.yaml', '../config/config.yaml']
+    if 'project' in env and env.project:
+        config_files.insert(1, '../config/projects/{}/config.yaml'.format(env.project))
+
+    config = {}
+
+    while config_files:
+        config_file = config_files.pop()
+        try:
+            data = _load_config_file(config_file)
+            print(green("Loaded config: {}".format(config_file)))
+        except Exception as e:
+            print(yellow("Warning - error loading config: {}".format(config_file)))
+            print(yellow(e))
+        config = dict_deepmerge(data, config)
+
+    env.__config = config
+    return config
+
+
+def get_env_config():
+    """
+    return get_config()['environment'][env.environment]
+    if key does not exist than falls back to default environment
+    """
+    config = get_config()
+    if env.environment in config['environment']:
+        return config['environment'][env.environment]
+    else:
+        return config['environment'][config['environment']['default']]
+

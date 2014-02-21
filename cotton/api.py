@@ -99,3 +99,14 @@ def filter(**kwargs):
     hosts = env.provider.filter(**kwargs)
     assert len(hosts) == 1
     work_on_vm_object(hosts[0])
+
+
+@task
+@ensure_provider
+def workon(name):
+    """
+    shortcut to filter host based on name
+    """
+    hosts = env.provider.filter(name=name)
+    assert len(hosts) == 1
+    work_on_vm_object(hosts[0])

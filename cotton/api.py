@@ -103,10 +103,12 @@ def filter(**kwargs):
 
 @task
 @ensure_provider
-def workon(name):
+def workon(name=None):
     """
-    shortcut to filter host based on name
+    shortcut to filter host based on name (falls back to env.vm_name)
     """
+    if name is None and 'vm_name' in env and env.vm_name:
+        name = env.vm_name
     hosts = env.provider.filter(name=name)
     assert len(hosts) == 1
     work_on_vm_object(hosts[0])

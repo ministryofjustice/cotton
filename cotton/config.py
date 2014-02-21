@@ -9,8 +9,8 @@ root/
 |-- application-deployment/
 |   `-- fabfile.py
 |-- config.user/config.yaml
+|-- config/projects/{project}/config.yaml
 `-- config/config.yaml
-`-- config/projects/{project}/config.yaml
 
 """
 #TODO: add /etc/cotton/config.yaml support

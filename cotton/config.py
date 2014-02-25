@@ -39,7 +39,7 @@ def dict_deepmerge(source, target):
 
 
 def _load_config_file(path):
-    fab_location = os.path.dirname(env['real_fabfile'])
+    fab_location = os.path.dirname(env.real_fabfile)
     config_location = os.path.abspath(os.path.join(fab_location, path))
 
     with open(config_location) as f:

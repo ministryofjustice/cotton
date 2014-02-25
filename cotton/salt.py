@@ -16,7 +16,8 @@ def get_pillar_location():
     assert 'project' in env
     assert env.project
 
-    fab_location = os.path.dirname(env['real_fabfile'])
+    #TODO: render pillar template to stdout / temp directory to sync it? (or just generate one file for remote)
+    fab_location = os.path.dirname(env.real_fabfile)
     pillar_location = os.path.abspath(os.path.join(fab_location, '../config/projects/{}/pillar'.format(env.project)))
 
     return pillar_location

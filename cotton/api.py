@@ -31,8 +31,10 @@ def load_provider(func):
     @wraps(func)
     def inner(*args, **kwargs):
         start_time = time.clock()
+
         get_provider_connection()
         ret = func(*args, **kwargs)
+
         end_time = time.clock()
         print(yellow("Duration: %.2gs" % (end_time-start_time)))
         return ret
@@ -66,8 +68,14 @@ def workon_fallback(func):
 
     @wraps(func)
     def inner(*args, **kwargs):
+        start_time = time.clock()
+
         get_workon_fallback()
-        return func(*args, **kwargs)
+        ret = func(*args, **kwargs)
+
+        end_time = time.clock()
+        print(yellow("Duration: %.2gs" % (end_time-start_time)))
+        return ret
     return inner
 
 

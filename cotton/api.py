@@ -1,3 +1,16 @@
+"""
+basic api
+
+it's recommended to wrap every task with decorator @workon_fallback
+
+@task
+@workon_fallback
+def mytask():
+    pass
+
+TODO: create task decorator that does the above
+
+"""
 from __future__ import print_function
 import pprint
 import time
@@ -8,9 +21,11 @@ from cotton.provider.driver import provider_class
 from cotton.common import *
 from cotton.colors import *
 
-def ensure_provider(func):
+
+def load_provider(func):
     """
     Decorator for all functions that need access to cloud
+    Sets: env.provider to initialized driver object
     Make sure that env.environment is initialized beforehand
     """
     @wraps(func)
@@ -35,6 +50,46 @@ def get_provider_connection():
     return env.provider
 
 
+def workon_fallback(func):
+    """
+    Decorator loads provider and configures current host based on env.vm_name
+    unless env.vm is already set
+
+    updated variables:
+    env.provider
+    env.vm
+    env.host_string
+    env.host
+    env.key_filename
+    env.user if in provisioning mode
+    """
+
+    @wraps(func)
+    def inner(*args, **kwargs):
+        get_workon_fallback()
+        return func(*args, **kwargs)
+    return inner
+
+
+def get_workon_fallback():
+    """
+    loads provider and configures current host based on env.vm_name
+    unless env.vm is already set
+
+    updated variables:
+    env.provider
+    env.vm
+    env.host_string
+    env.host
+    env.key_filename
+    env.user if in provisioning mode
+    """
+    if 'vm' in env and env.vm:
+        return
+    assert env.vm_name
+    work_on_vm_name(env.vm_name)
+
+
 def work_on_vm_name(name):
     """
     updates fabric env context to work on selected vm
@@ -46,7 +101,6 @@ def work_on_vm_name(name):
     vms = env.provider.filter(name=name)
     assert len(vms) == 1
     work_on_vm_object(vms[0])
-    return env.vm, env.host_string
 
 
 def work_on_vm_object(server):
@@ -55,11 +109,11 @@ def work_on_vm_object(server):
     env.host_string = env.provider.host_string(env.vm)
     env.host = env.provider.host_string(env.vm)
     apply_configuration()
-    return env.vm, env.host_string
+
 
 
 @task
-@ensure_provider
+@load_provider
 def create(name=None, size=None):
     vm = env.provider.create(name=name, size=size)
     work_on_vm_object(vm)
@@ -67,21 +121,19 @@ def create(name=None, size=None):
 
 
 @task
-@ensure_provider
-def destroy(name=None):
-    work_on_vm_name(name)
+@workon_fallback
+def destroy():
     env.provider.terminate(env.vm)
 
 
 @task
-@ensure_provider
-def info(name=None):
-    work_on_vm_name(name)
+@workon_fallback
+def info():
     pprint.pprint(env.provider.info(env.vm))
 
 
 @task
-@ensure_provider
+@workon_fallback
 def status():
     #TODO: format output
     statuses = env.provider.status()
@@ -90,7 +142,7 @@ def status():
 
 
 @task
-@ensure_provider
+@load_provider
 def filter(**kwargs):
     """
     supported args:
@@ -102,7 +154,7 @@ def filter(**kwargs):
 
 
 @task
-@ensure_provider
+@load_provider
 def workon(name=None):
     """
     shortcut to filter host based on name (falls back to env.vm_name)

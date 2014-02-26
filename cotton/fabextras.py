@@ -6,7 +6,7 @@ import getpass
 from fabric.api import settings, sudo, run, hide, local, task, parallel, env
 from fabric.contrib.project import rsync_project
 from fabric.exceptions import NetworkError
-
+from cotton.api import workon_fallback
 
 # thanks to
 # http://stackoverflow.com/questions/14693701/how-can-i-remove-the-ansi-escape-sequences-from-a-string-in-python
@@ -14,7 +14,7 @@ ansi_escape = re.compile(r'\x1b[^m]*m')
 
 
 @task
-@parallel
+@workon_fallback
 def uptime():
     """
     execute uptime
@@ -23,6 +23,7 @@ def uptime():
 
 
 @task
+@workon_fallback
 def ipython():
     """
     starts ipython within fabric context
@@ -34,6 +35,7 @@ def ipython():
 
 
 @task
+@workon_fallback
 def ssh():
     """
     ssh to host (enables keep alive, forwards key)
@@ -43,6 +45,7 @@ def ssh():
 
 
 @task
+@workon_fallback
 def ssh_forward(lport, rport):
     """
     open ssh session and tunnel port ssh_forward:local_port,remote_port

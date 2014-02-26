@@ -22,12 +22,13 @@ Depends on following fabric env variables::
 
 Assumes that your config directory is next to directory containing fabfile.py:
 
-root/
-|-- application-deployment/
-|   `-- fabfile.py
-|-- config.user/config.yaml
-|-- config/projects/{project}/config.yaml
-`-- config/config.yaml
+
+    root/
+    |-- application-deployment/
+    |   `-- fabfile.py
+    |-- config.user/config.yaml
+    |-- config/projects/{project}/config.yaml
+    `-- config/config.yaml
 
 
 

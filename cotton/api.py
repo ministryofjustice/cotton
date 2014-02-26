@@ -16,7 +16,7 @@ import pprint
 import time
 from functools import wraps
 from cotton.config import get_env_config
-from cotton.fabextras import wait_for_shell
+
 from cotton.provider.driver import provider_class
 from cotton.common import *
 from cotton.colors import *
@@ -87,10 +87,10 @@ def get_workon_fallback():
     if 'vm' in env and env.vm:
         return
     assert env.vm_name
-    work_on_vm_name(env.vm_name)
+    workon_vm_name(env.vm_name)
 
 
-def work_on_vm_name(name):
+def workon_vm_name(name):
     """
     updates fabric env context to work on selected vm
     sets:
@@ -100,10 +100,10 @@ def work_on_vm_name(name):
     get_provider_connection()
     vms = env.provider.filter(name=name)
     assert len(vms) == 1
-    work_on_vm_object(vms[0])
+    workon_vm_object(vms[0])
 
 
-def work_on_vm_object(server):
+def workon_vm_object(server):
     get_provider_connection()
     env.vm = server
     env.host_string = env.provider.host_string(env.vm)
@@ -111,12 +111,12 @@ def work_on_vm_object(server):
     apply_configuration()
 
 
-
 @task
 @load_provider
 def create(name=None, size=None):
+    from cotton.fabextras import wait_for_shell
     vm = env.provider.create(name=name, size=size)
-    work_on_vm_object(vm)
+    workon_vm_object(vm)
     wait_for_shell()
 
 
@@ -150,7 +150,7 @@ def filter(**kwargs):
     """
     hosts = env.provider.filter(**kwargs)
     assert len(hosts) == 1
-    work_on_vm_object(hosts[0])
+    workon_vm_object(hosts[0])
 
 
 @task
@@ -163,4 +163,4 @@ def workon(name=None):
         name = env.vm_name
     hosts = env.provider.filter(name=name)
     assert len(hosts) == 1
-    work_on_vm_object(hosts[0])
+    workon_vm_object(hosts[0])

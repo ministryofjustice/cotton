@@ -122,8 +122,10 @@ def workon_vm_object(server):
 @task
 @load_provider
 def create(name=None, size=None):
+    if size:
+        print(red("size argument for cotton.api.create is deprecated and will be removed shortly"))
     from cotton.fabextras import wait_for_shell
-    vm = env.provider.create(name=name, size=size)
+    vm = env.provider.create(name=name)
     workon_vm_object(vm)
     wait_for_shell()
 

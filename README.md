@@ -20,7 +20,10 @@ Depends on following fabric env variables::
     env.provisioning = True
 
 
-Assumes that your config directory is next to directory containing fabfile.py:
+Environment is provider configuration.
+
+
+Assumes that your config directory is next to directory containing fabfile.py::
 
 
     root/

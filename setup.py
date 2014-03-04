@@ -18,7 +18,6 @@ setup(
     install_requires=[
         'fabric',
         'boto',
-        'ipython',
         'jinja2',
         'python-dateutil',
         'pyyaml',

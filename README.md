@@ -44,3 +44,10 @@ example config.user/config.yaml::
         aws_access_key_id: 'TBV'
         aws_secret_access_key: 'TBD'
         ssh_key: /Users/aceventura/.ssh/default
+      my_static_name:
+        driver: static
+        hosts:
+          - name: master
+            ip: 1.2.3.4
+          - name: master-staging
+            ip: 1.2.3.5

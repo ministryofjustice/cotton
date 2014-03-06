@@ -41,7 +41,10 @@ def ssh():
     ssh to host (enables keep alive, forwards key)
     passes through ^C
     """
-    local('ssh -o "ServerAliveInterval 30" -A -i "{key}" -p {port} {user}@{host}'.format(key=env.key_filename, user=env.user, host=env.host, port=env.port))
+    if 'key_filename' in env and env.key_filename:
+        local('ssh -o "ServerAliveInterval 30" -A -i "{key}" -p {port} {user}@{host}'.format(key=env.key_filename, user=env.user, host=env.host, port=env.port))
+    else:
+        local('ssh -o "ServerAliveInterval 30" -A -p {port} {user}@{host}'.format(key=env.key_filename, user=env.user, host=env.host, port=env.port))
 
 
 @task
@@ -50,8 +53,10 @@ def ssh_forward(lport, rport):
     """
     open ssh session and tunnel port ssh_forward:local_port,remote_port
     """
-    local('ssh -o "ServerAliveInterval 30" -A -i {key} -p {port} -L {lport}:127.0.0.1:{rport} {user}@{host}'.format(key=env.key_filename, user=env.user, host=env.host, port=env.port, lport=lport, rport=rport))
-
+    if 'key_filename' in env and env.key_filename:
+        local('ssh -o "ServerAliveInterval 30" -A -i {key} -p {port} -L {lport}:127.0.0.1:{rport} {user}@{host}'.format(key=env.key_filename, user=env.user, host=env.host, port=env.port, lport=lport, rport=rport))
+    else:
+        local('ssh -o "ServerAliveInterval 30" -A -p {port} -L {lport}:127.0.0.1:{rport} {user}@{host}'.format(key=env.key_filename, user=env.user, host=env.host, port=env.port, lport=lport, rport=rport))
 
 def is_not_empty(path, use_sudo=False, verbose=False):
     """

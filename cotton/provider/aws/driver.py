@@ -27,7 +27,6 @@ class AWSProvider(Provider):
         assert self.connection is not None
 
     def status(self):
-        print("I'm here")
         instances = []
         for reservation in self.connection.get_all_instances():
             instance = reservation.instances[0]

@@ -57,6 +57,8 @@ def get_config():
     if 'project' in env and env.project:
         config_files.insert(1, '../config/projects/{}/config.yaml'.format(env.project))
 
+    config_files = map(os.path.expanduser, config_files)
+
     config = {}
 
     while config_files:
@@ -64,6 +66,8 @@ def get_config():
         try:
             data = _load_config_file(config_file)
             print(green("Loaded config: {}".format(config_file)))
+            if config_file == '../config.user/config.yaml':
+                print(red("Deprecated location. Please use ~/.config.yaml"))
         except Exception as e:
             print(yellow("Warning - error loading config: {}".format(config_file)))
             print(yellow(e))

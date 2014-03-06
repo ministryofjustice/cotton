@@ -1,4 +1,8 @@
 """
+a provider for "Static" server
+
+basically it assumes that server is there
+
 expects config.yaml
 
 environment:
@@ -39,6 +43,12 @@ class StaticProvider(Provider):
         env_config = get_env_config()
         return env_config['hosts']
 
+    def create(self, **kwargs):
+        """
+        return: server object
+        """
+        name = kwargs['name']
+        return self.filter(name=name)[0]
 
     def filter(self, **kwargs):
         """

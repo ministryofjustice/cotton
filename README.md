@@ -29,7 +29,8 @@ Assumes that your config directory is next to directory containing fabfile.py::
     root/
     |-- application-deployment/
     |   `-- fabfile.py
-    |-- config.user/config.yaml
+    |-- ~/.config.yaml
+    |-- config.user/config.yaml  # deprecated
     |-- config/projects/{project}/config.yaml
     `-- config/config.yaml
 

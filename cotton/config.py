@@ -53,7 +53,7 @@ def get_config():
     if '__config' in env and env.__config:
         return env.__config
 
-    config_files = ['../config.user/config.yaml', '../config/config.yaml']
+    config_files = ['~/.config.yaml', '../config.user/config.yaml', '../config/config.yaml']
     if 'project' in env and env.project:
         config_files.insert(1, '../config/projects/{}/config.yaml'.format(env.project))
 

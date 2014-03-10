@@ -143,7 +143,7 @@ def info():
 
 
 @task
-@workon_fallback
+@load_provider
 def status():
     #TODO: format output
     statuses = env.provider.status()

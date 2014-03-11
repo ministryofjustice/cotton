@@ -12,7 +12,7 @@ It solves three problems:
 
 Depends on following fabric env variables::
 
-    env.environment = 'aws_dev'
+    env.provider_zones = 'aws_dev'
     env.project = 'foo-dev'
     env.vm_name = 'foo.master'
 
@@ -39,7 +39,7 @@ Assumes that your config directory is next to directory containing fabfile.py::
 example config.user/config.yaml::
 
 
-    environment:
+    provider_zones:
       aws_dev:
         aws_access_key_id: 'TBV'
         aws_secret_access_key: 'TBD'

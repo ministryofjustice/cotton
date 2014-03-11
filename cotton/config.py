@@ -77,14 +77,14 @@ def get_config():
     return config
 
 
-def get_env_config():
+def get_provider_zone_config():
     """
-    return get_config()['environment'][env.environment]
-    if key does not exist than falls back to default environment
+    return get_config()['provider_zones'][env.provider_zone]
+    if key does not exist than falls back to default zone
     """
     config = get_config()
-    if env.environment in config['environment']:
-        return config['environment'][env.environment]
+    if env.provider_zone in config['provider_zones']:
+        return config['provider_zones'][env.provider_zone]
     else:
-        return config['environment'][config['environment']['default']]
+        return config['provider_zones'][config['provider_zone']['default']]
 

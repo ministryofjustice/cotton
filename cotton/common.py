@@ -1,6 +1,6 @@
 from __future__ import print_function
 from fabric.api import task, env
-from cotton.config import get_env_config
+from cotton.config import get_provider_zone_config
 
 if 'provisioning' not in env:
     env.provisioning = False
@@ -8,8 +8,8 @@ if 'provisioning' not in env:
 if 'project' not in env:
     env.project = None
 
-if 'environment' not in env:
-    env.environment = None
+if 'provider_zone' not in env:
+    env.provider_zone = None
 
 if 'insecure' not in env:
     env.insecure = False
@@ -61,24 +61,16 @@ def force():
     env.force = True
 
 
-@task
-def environment(env_name):
-    """
-    wrapper to set env.environment for the session
-    """
-    env.environment = env_name
-
-
 def apply_configuration():
     """
     in provisioning mode it sets the ssh key from config file
     if ssh_key is available than uses it as user ssh key
 
     """
-    env_config = get_env_config()
+    cfg = get_provider_zone_config()
     if env.provisioning:
-        env.key_filename = env_config['provisioning_ssh_key']
-        env.user = env_config['provisioning_user']
+        env.key_filename = cfg['provisioning_ssh_key']
+        env.user = cfg['provisioning_user']
     else:
-        if 'ssh_key' in env_config:
-            env.key_filename = env_config['ssh_key']
+        if 'ssh_key' in cfg:
+            env.key_filename = cfg['ssh_key']

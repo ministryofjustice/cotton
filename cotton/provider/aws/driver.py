@@ -40,7 +40,7 @@ class AWSProvider(Provider):
         return: aws instance object
         instance is booting so don't forget to cotton.fabextras.wait_for_shell()
         """
-        env_config = get_config()['environment'][env.environment]
+        env_config = get_provider_zone_config()
 
         result = self.filter(name=name)
         if result:

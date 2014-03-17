@@ -3,7 +3,7 @@ a provider for "Static" server
 
 basically it assumes that server is there
 
-expects config.yaml
+expects ~/.cotton.yaml
 
 provider_zone:
   my_static_name:

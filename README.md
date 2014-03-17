@@ -36,7 +36,7 @@ Assumes that your config directory is next to directory containing fabfile.py::
 
 
 
-example config.user/config.yaml::
+example ~/.cotton.yaml::
 
 
     provider_zones:

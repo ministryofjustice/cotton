@@ -12,7 +12,7 @@ It solves three problems:
 
 Depends on following fabric env variables::
 
-    env.provider_zones = 'aws_dev'
+    env.provider_zone = 'aws_dev'
     env.project = 'foo-dev'
     env.vm_name = 'foo.master'
 

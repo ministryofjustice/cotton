@@ -40,8 +40,8 @@ class StaticProvider(Provider):
 
     def status(self):
 
-        cfg = get_provider_zone_config()
-        return cfg['hosts']
+        zone_config = get_provider_zone_config()
+        return zone_config['hosts']
 
     def create(self, **kwargs):
         """
@@ -60,9 +60,9 @@ class StaticProvider(Provider):
         if 'name' in kwargs:
             name = kwargs['name']
 
-            cfg = get_provider_zone_config()
-            assert cfg['driver'] == 'static'
-            for host_spec in cfg['hosts']:
+            zone_config = get_provider_zone_config()
+            assert zone_config['driver'] == 'static'
+            for host_spec in zone_config['hosts']:
                 if host_spec['name'] == name:
                     print("selected static instance: {}".format(host_spec['name']))
                     instances.append(host_spec)

@@ -45,10 +45,10 @@ def get_provider_connection():
     """
     returns initialized provider object and caches it in env.provider
     """
-    config = get_provider_zone_config()
+    zone_config = get_provider_zone_config()
     if not 'provider' in env or not env.provider:
-        p_class = provider_class(config['driver'])
-        env.provider = p_class(**config)
+        p_class = provider_class(zone_config['driver'])
+        env.provider = p_class(**zone_config)
     return env.provider
 
 

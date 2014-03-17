@@ -40,7 +40,7 @@ class AWSProvider(Provider):
         return: aws instance object
         instance is booting so don't forget to cotton.fabextras.wait_for_shell()
         """
-        env_config = get_provider_zone_config()
+        zone_config = get_provider_zone_config()
 
         result = self.filter(name=name)
         if result:
@@ -50,11 +50,11 @@ class AWSProvider(Provider):
         apply_configuration()
 
         run_instances_args = dict()
-        run_instances_args['image_id'] = env_config['image_id']
-        run_instances_args['key_name'] = env_config['provisioning_ssh_key_name']
-        run_instances_args['instance_type'] = env_config['instance_type']
-        if 'security_groups' in env_config:
-            run_instances_args['security_groups'] = env_config['security_groups']
+        run_instances_args['image_id'] = zone_config['image_id']
+        run_instances_args['key_name'] = zone_config['provisioning_ssh_key_name']
+        run_instances_args['instance_type'] = zone_config['instance_type']
+        if 'security_groups' in zone_config:
+            run_instances_args['security_groups'] = zone_config['security_groups']
 
         reservation = self.connection.run_instances(**run_instances_args)
         instance = reservation.instances[0]

@@ -2,9 +2,10 @@
 root/
 |-- application-deployment/
 |   `-- fabfile.py
-|-- config.user/config.yaml
-|-- config/projects/{project}/config.yaml
-`-- config/config.yaml
+|
+|-- ~/.cotton.yaml
+|-- config/projects/{project}/project.yaml
+`-- config/cotton.yaml
 
 """
 from __future__ import print_function

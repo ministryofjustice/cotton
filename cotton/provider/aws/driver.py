@@ -11,7 +11,7 @@ from cotton.colors import *
 from cotton.provider.driver import Server, Provider
 from cotton.config import get_config
 from cotton.api import provisioning, apply_configuration
-
+from cotton.config import get_provider_zone_config
 
 class AWSProvider(Provider):
 

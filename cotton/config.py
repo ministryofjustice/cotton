@@ -53,23 +53,31 @@ def get_config():
     if '__config' in env and env.__config:
         return env.__config
 
-    config_files = ['~/.config.yaml', '../config.user/config.yaml', '../config/config.yaml']
+    # If a preferred location is specified in the hash the old path is deprecated and a warning
+    # should be shown
+    config_files = [
+        { 'path': '~/.cotton.yaml' },
+        { 'path': '~/.config.yaml',             'preferred': '~/.cotton.yaml' },
+        { 'path': '../config.user/config.yaml', 'preferred': '~/.cotton.yaml' },
+        { 'path': '../config/cotton.yaml' },
+        { 'path': '../config/config.yaml',      'preferred': '../config/cotton.yaml' }
+    ]
     if 'project' in env and env.project:
-        config_files.insert(1, '../config/projects/{}/config.yaml'.format(env.project))
-
-    config_files = map(os.path.expanduser, config_files)
+        config_files.insert(1, { 'path': '../config/projects/{}/config.yaml'.format(env.project),
+                                 'preferred': '../config/projects/{}/project.yaml'.format(env.project) })
+        config_files.insert(1, { 'path': '../config/projects/{}/project.yaml'.format(env.project) })
 
     config = {}
-
     while config_files:
         config_file = config_files.pop()
+        config_filename = os.path.expanduser(config_file.get('path'))
         try:
-            data = _load_config_file(config_file)
-            print(green("Loaded config: {}".format(config_file)))
-            if config_file == '../config.user/config.yaml':
-                print(red("Deprecated location. Please use ~/.config.yaml"))
+            data = _load_config_file(config_filename)
+            print(green("Loaded config: {}".format(config_filename)))
+            if config_file.get('preferred'):
+                print(red("Deprecated location for {} - Please use {}".format(config_filename, config_file.get('preferred'))))
         except Exception as e:
-            print(yellow("Warning - error loading config: {}".format(config_file)))
+            print(yellow("Warning - error loading config: {}".format(config_filename)))
             print(yellow(e))
         config = dict_deepmerge(data, config)
 

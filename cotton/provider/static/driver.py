@@ -5,7 +5,7 @@ basically it assumes that server is there
 
 expects config.yaml
 
-environment:
+provider_zone:
   my_static_name:
     driver: static
     hosts:
@@ -24,7 +24,7 @@ import pprint
 from fabric.api import abort, env, prompt
 from cotton.colors import *
 from cotton.provider.driver import Server, Provider
-from cotton.config import get_config, get_env_config
+from cotton.config import get_config, get_provider_zone_config
 from cotton.api import provisioning, apply_configuration
 
 
@@ -40,8 +40,8 @@ class StaticProvider(Provider):
 
     def status(self):
 
-        env_config = get_env_config()
-        return env_config['hosts']
+        zone_config = get_provider_zone_config()
+        return zone_config['hosts']
 
     def create(self, **kwargs):
         """
@@ -60,9 +60,9 @@ class StaticProvider(Provider):
         if 'name' in kwargs:
             name = kwargs['name']
 
-            env_config = get_env_config()
-            assert env_config['driver'] == 'static'
-            for host_spec in env_config['hosts']:
+            zone_config = get_provider_zone_config()
+            assert zone_config['driver'] == 'static'
+            for host_spec in zone_config['hosts']:
                 if host_spec['name'] == name:
                     print("selected static instance: {}".format(host_spec['name']))
                     instances.append(host_spec)

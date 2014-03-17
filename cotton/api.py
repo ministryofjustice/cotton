@@ -15,7 +15,7 @@ from __future__ import print_function
 import pprint
 import time
 from functools import wraps
-from cotton.config import get_env_config
+from cotton.config import get_provider_zone_config
 
 from cotton.provider.driver import provider_class
 from cotton.common import *
@@ -26,7 +26,7 @@ def load_provider(func):
     """
     Decorator for all functions that need access to cloud
     Sets: env.provider to initialized driver object
-    Make sure that env.environment is initialized beforehand
+    Make sure that env.provider_zone is initialized beforehand
     """
     @wraps(func)
     def inner(*args, **kwargs):
@@ -45,10 +45,10 @@ def get_provider_connection():
     """
     returns initialized provider object and caches it in env.provider
     """
-    env_config = get_env_config()
+    zone_config = get_provider_zone_config()
     if not 'provider' in env or not env.provider:
-        p_class = provider_class(env_config['driver'])
-        env.provider = p_class(**env_config)
+        p_class = provider_class(zone_config['driver'])
+        env.provider = p_class(**zone_config)
     return env.provider
 
 

@@ -56,30 +56,31 @@ def get_config():
     # If a preferred location is specified in the hash the old path is deprecated and a warning
     # should be shown
     config_files = [
-        { 'path': '~/.cotton.yaml' },
-        { 'path': '~/.config.yaml',             'preferred': '~/.cotton.yaml' },
-        { 'path': '../config.user/config.yaml', 'preferred': '~/.cotton.yaml' },
-        { 'path': '../config/cotton.yaml' },
-        { 'path': '../config/config.yaml',      'preferred': '../config/cotton.yaml' }
+        {'path': '~/.cotton.yaml'},
+        {'path': '~/.config.yaml',             'preferred': '~/.cotton.yaml'},
+        {'path': '../config.user/config.yaml', 'preferred': '~/.cotton.yaml'},
+        {'path': '../config/cotton.yaml'},
+        {'path': '../config/config.yaml',      'preferred': '../config/cotton.yaml'}
     ]
     if 'project' in env and env.project:
-        config_files.insert(1, { 'path': '../config/projects/{}/config.yaml'.format(env.project),
-                                 'preferred': '../config/projects/{}/project.yaml'.format(env.project) })
-        config_files.insert(1, { 'path': '../config/projects/{}/project.yaml'.format(env.project) })
+        config_files.insert(1, {'path': '../config/projects/{}/config.yaml'.format(env.project),
+                                'preferred': '../config/projects/{}/project.yaml'.format(env.project)})
+        config_files.insert(1, {'path': '../config/projects/{}/project.yaml'.format(env.project)})
 
     config = {}
-    while config_files:
-        config_file = config_files.pop()
+    for config_file in config_files:
         config_filename = os.path.expanduser(config_file.get('path'))
+        data = {}
         try:
             data = _load_config_file(config_filename)
             print(green("Loaded config: {}".format(config_filename)))
             if config_file.get('preferred'):
                 print(red("Deprecated location for {} - Please use {}".format(config_filename, config_file.get('preferred'))))
+            config = dict_deepmerge(data, config)
         except Exception as e:
-            print(yellow("Warning - error loading config: {}".format(config_filename)))
-            print(yellow(e))
-        config = dict_deepmerge(data, config)
+            if 'preferred' not in config_file:
+                print(yellow("Warning - error loading config: {}".format(config_filename)))
+                print(yellow(e))
 
     env.__config = config
     return config
@@ -94,5 +95,5 @@ def get_provider_zone_config():
     if env.provider_zone in config['provider_zones']:
         return config['provider_zones'][env.provider_zone]
     else:
-        return config['provider_zones'][config['provider_zone']['default']]
+        return config['provider_zones'][config['provider_zones']['default']]
 

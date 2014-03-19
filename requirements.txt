@@ -1,0 +1,7 @@
+Fabric
+Jinja2
+PyYAML
+boto
+python-dateutil
+ipython
+

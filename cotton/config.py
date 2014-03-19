@@ -92,6 +92,7 @@ def get_provider_zone_config():
     if key does not exist than falls back to default zone
     """
     config = get_config()
+
     if env.provider_zone in config['provider_zones']:
         return config['provider_zones'][env.provider_zone]
     else:

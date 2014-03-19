@@ -33,7 +33,7 @@ def ssh_host_string(user, host):
 
 
 @needs_host
-def rsync_project(
+def gw_rsync_project(
     remote_dir,
     local_dir=None,
     exclude=(),

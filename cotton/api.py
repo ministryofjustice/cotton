@@ -46,6 +46,10 @@ def get_provider_connection():
     returns initialized provider object and caches it in env.provider
     """
     zone_config = get_provider_zone_config()
+
+    print(green("Selected provider zone config:"))
+    print(green(zone_config))
+
     if not 'provider' in env or not env.provider:
         p_class = provider_class(zone_config['driver'])
         env.provider = p_class(**zone_config)

@@ -131,6 +131,9 @@ def gw_rsync_project(
         key_string = "-i " + " -i ".join(keys)
     # Port
     user, host, port = normalize(env.host_string)
+    host = "master.lpa"
+
+
     port_string = "-p %s" % port
     # RSH
     rsh_string = ""

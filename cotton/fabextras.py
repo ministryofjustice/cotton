@@ -4,7 +4,6 @@ import sys
 import time
 import getpass
 from fabric.api import settings, sudo, run, hide, local, task, parallel, env
-from fabric.contrib.project import rsync_project
 
 from cotton.gw_rsync_project import gw_rsync_project
 
@@ -97,7 +96,7 @@ def wait_for_shell():
     print(" OK")
 
 # [GR] Slightly modified to use Paul's new rsync library - old one will be deprecate once we're happy with this.
-def gw_smart_rsync_project(*args, **kwargs):
+def smart_rsync_project(*args, **kwargs):
     """ 
     rsync_project wrapper that is aware of insecure fab argument and can chown the target directory
 
@@ -116,36 +115,11 @@ def gw_smart_rsync_project(*args, **kwargs):
         sudo("find {} -type d -print0 | xargs -0 chmod u+rwx".format(directory))
         sudo("chown -R {} {}".format(env.user, directory))
 
+     
     gw_rsync_project(*args, **kwargs)
 
     if for_user:
         sudo("chown -R {} {}".format(for_user, directory))
-
-
-def smart_rsync_project(*args, **kwargs):
-    """
-    rsync_project wrapper that is aware of insecure fab argument and can chown the target directory
-
-    :param for_user: optional, chowns the directory to this user at the end
-    """
-    if 'for_user' in kwargs:
-        for_user = kwargs.pop('for_user')
-    else:
-        for_user = None
-    directory = args[0]
-
-    if env.insecure:
-        kwargs['ssh_opts'] = "-o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no"
-
-    if for_user:
-        sudo("find {} -type d -print0 | xargs -0 chmod u+rwx".format(directory))
-        sudo("chown -R {} {}".format(env.user, directory))
-
-    rsync_project(*args, **kwargs)
-
-    if for_user:
-        sudo("chown -R {} {}".format(for_user, directory))
-
 
 def get_password(system, username, desc=None):
     """

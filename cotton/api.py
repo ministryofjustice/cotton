@@ -56,8 +56,9 @@ def get_provider_connection():
     return env.provider
 
 
-def workon_fallback(func):
+def vm_task(func):
     """
+    Decorate this task as operating on a VM, and set up fabric ``env`` object to target this host.
     Decorator loads provider and configures current host based on env.vm_name
     unless env.vm is already set
 
@@ -74,8 +75,11 @@ def workon_fallback(func):
     def inner(*args, **kwargs):
         start_time = time.time()
 
-        get_workon_fallback()
-        ret = func(*args, **kwargs)
+        if 'vm' in env and env.vm:
+            return
+        assert env.vm_name
+        configure_fabric_for_host(env.vm_name)
+        ret = fabric.decorators.task(func(*args, **kwargs))
 
         end_time = time.time()
         print(yellow("Duration: {:.2f}s".format(end_time - start_time)))
@@ -83,7 +87,7 @@ def workon_fallback(func):
     return inner
 
 
-def get_workon_fallback():
+def configure_fabric_for_host(name):
     """
     loads provider and configures current host based on env.vm_name
     unless env.vm is already set
@@ -96,31 +100,22 @@ def get_workon_fallback():
     env.key_filename
     env.user if in provisioning mode
     """
-    if 'vm' in env and env.vm:
-        return
-    assert env.vm_name
-    workon_vm_name(env.vm_name)
 
-
-def workon_vm_name(name):
-    """
-    updates fabric env context to work on selected vm
-    sets:
-    env.vm
-    env.host_string
-    """
     get_provider_connection()
     vms = env.provider.filter(name=name)
     assert len(vms) == 1
-    workon_vm_object(vms[0])
+    env.vm = vms[0]
 
-
-def workon_vm_object(server):
     get_provider_connection()
-    env.vm = server
-    env.host_string = env.provider.host_string(env.vm)
     env.host = env.provider.host_string(env.vm)
-    apply_configuration()
+
+    zone_config = get_provider_zone_config()
+    if env.provisioning:
+        env.key_filename = zone_config['provisioning_ssh_key']
+        env.user = zone_config['provisioning_user']
+    else:
+        if 'ssh_key' in zone_config:
+            env.key_filename = zone_config['ssh_key']
 
 
 @task

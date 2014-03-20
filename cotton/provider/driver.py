@@ -2,14 +2,6 @@ from __future__ import print_function
 import importlib
 from exceptions import NotImplementedError
 
-
-class Server(object):
-    """
-    abstract container to store provider specific server object
-    """
-    pass
-
-
 class Provider(object):
     def __init__(self, **kwargs):
         """
@@ -47,6 +39,7 @@ class Provider(object):
         returns host_string in fab format such that we can ssh to server
         """
         raise NotImplementedError()
+
 
 
 def provider_class(provider_name):

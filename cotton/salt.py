@@ -9,7 +9,9 @@ import os
 from fabric.api import env
 
 
-def get_pillar_location():
+
+
+def get_unrendered_pillar_location():
     """
     returns local pillar location
     """
@@ -21,3 +23,55 @@ def get_pillar_location():
     pillar_location = os.path.abspath(os.path.join(fab_location, '../config/projects/{}/pillar'.format(env.project)))
 
     return pillar_location
+
+
+def _get_projects_location():
+    fab_location = os.path.dirname(env.real_fabfile)
+    return os.path.abspath(os.path.join(fab_location, '../config/projects/'))
+
+
+def get_rendered_pillar_location():
+    """
+    Returns path to rendered pillar.
+    Use to render pillars written in jinja locally not to upload unwanted data to network.
+
+    i.e. you can use constructs like:
+    {% include 'opg-lpa-dev/pillar/services.sls' %}
+    """
+    from jinja2 import Environment
+    from jinja2 import FileSystemLoader
+    assert env.project
+    projects_location = _get_projects_location()
+
+    jinja_env = Environment(
+        loader=FileSystemLoader([os.path.join(projects_location, env.project, 'pillar'),
+                                 projects_location]))
+
+    # let's get rendered top.sls for configured project
+    top_sls = jinja_env.get_template('top.sls').render()
+    top_content = yaml.load(top_sls)
+
+    dest_location = tempfile.mkdtemp()
+
+    with open(os.path.join(dest_location, 'top.sls'), 'w') as f:
+        f.write(top_sls)
+
+    # get list of files referenced by top.sls
+    files_to_render = []
+    for k0, v0 in top_content.iteritems():
+        for k1, v1 in v0.iteritems():
+            for file_short in v1:
+                files_to_render.append(file_short + '.sls')
+
+    # render and save templates
+    for template_file in files_to_render:
+        template_rendered = jinja_env.get_template(template_file).render()
+        with open(os.path.join(dest_location, template_file), 'w') as f:
+            f.write(template_rendered)
+
+    print(yellow("Pillar was rendered in: {}".format(dest_location)))
+    return dest_location
+
+
+get_pillar_location = get_rendered_pillar_location
+

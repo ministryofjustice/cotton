@@ -131,7 +131,6 @@ def gw_rsync_project(
         key_string = "-i " + " -i ".join(keys)
     # Port
     user, host, port = normalize(env.host_string)
-    host = env.host_string
 
     port_string = "-p %s" % port
     # RSH
@@ -140,7 +139,7 @@ def gw_rsync_project(
     proxy_string = ""
     if env.gateway:
         print env.gateway
-        proxy_string = '-o "ProxyCommand ssh {} {} nc %h %p"'.format(" ".join(rsh_parts), ssh_gateway(user,env.gateway))
+        proxy_string = '-o "ProxyCommand ssh {} {} nc %h %p"'.format(" ".join(rsh_parts), ssh_gateway(user, env.gateway))
     rsh_parts += [proxy_string]
     if any(rsh_parts):
         rsh_string = "--rsh='ssh %s'" % " ".join(rsh_parts)

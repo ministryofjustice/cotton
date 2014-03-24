@@ -3,7 +3,7 @@ import re
 import sys
 import time
 import getpass
-from fabric.api import settings, sudo, run, hide, local, task, parallel, env
+from fabric.api import settings, sudo, run, hide, local, task, parallel, env, open_shell
 
 from cotton.gw_rsync_project import gw_rsync_project
 
@@ -35,7 +35,7 @@ def ipython():
 
 
 @vm_task
-def ssh():
+def ssh_forked():
     """
     ssh to host (enables keep alive, forwards key)
     passes through ^C
@@ -47,14 +47,21 @@ def ssh():
 
 
 @vm_task
+def ssh():
+    open_shell()
+
+
+@vm_task
 def ssh_forward(lport, rport):
     """
     open ssh session and tunnel port ssh_forward:local_port,remote_port
     """
+    #TODO: enable it to work with env.gateway
     if 'key_filename' in env and env.key_filename:
         local('ssh -o "ServerAliveInterval 30" -A -i {key} -p {port} -L {lport}:127.0.0.1:{rport} {user}@{host}'.format(key=env.key_filename, user=env.user, host=env.host, port=env.port, lport=lport, rport=rport))
     else:
         local('ssh -o "ServerAliveInterval 30" -A -p {port} -L {lport}:127.0.0.1:{rport} {user}@{host}'.format(key=env.key_filename, user=env.user, host=env.host, port=env.port, lport=lport, rport=rport))
+
 
 def is_not_empty(path, use_sudo=False, verbose=False):
     """
@@ -95,6 +102,7 @@ def wait_for_shell():
                 time.sleep(1)
     print(" OK")
 
+
 # [GR] Slightly modified to use Paul's new rsync library - old one will be deprecate once we're happy with this.
 def smart_rsync_project(*args, **kwargs):
     """ 
@@ -120,6 +128,7 @@ def smart_rsync_project(*args, **kwargs):
 
     if for_user:
         sudo("chown -R {} {}".format(for_user, directory))
+
 
 def get_password(system, username, desc=None):
     """

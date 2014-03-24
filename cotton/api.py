@@ -77,10 +77,9 @@ def vm_task(func):
     def inner(*args, **kwargs):
         start_time = time.time()
 
-        if 'vm' in env and env.vm:
-            return
-        assert env.vm_name
-        configure_fabric_for_host(env.vm_name)
+        if  'vm' not in env or not env.vm:
+            assert env.vm_name
+            configure_fabric_for_host(env.vm_name)
         ret = func(*args, **kwargs)
 
         end_time = time.time()
@@ -149,19 +148,6 @@ def status():
     for line in statuses:
         pprint.pprint(line)
 
-
-@task
-@load_provider
-def filter(**kwargs):
-    """
-    supported args:
-    name
-    """
-    hosts = env.provider.filter(**kwargs)
-    assert len(hosts) == 1
-    workon_vm_object(hosts[0])
-
-
 @task
 @load_provider
 def workon(name=None):
@@ -170,6 +156,4 @@ def workon(name=None):
     """
     if name is None and 'vm_name' in env and env.vm_name:
         name = env.vm_name
-    hosts = env.provider.filter(name=name)
-    assert len(hosts) == 1
-    workon_vm_object(hosts[0])
+    configure_fabric_for_host(name)

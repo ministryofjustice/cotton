@@ -3,8 +3,7 @@ basic api
 
 it's recommended to wrap every task with decorator @workon_fallback
 
-@task
-@workon_fallback
+@vm_task
 def mytask():
     pass
 
@@ -131,14 +130,12 @@ def create(name=None, size=None):
     wait_for_shell()
 
 
-@task
-@workon_fallback
+@vm_task
 def destroy():
     env.provider.terminate(env.vm)
 
 
-@task
-@workon_fallback
+@vm_task
 def info():
     pprint.pprint(env.provider.info(env.vm))
 

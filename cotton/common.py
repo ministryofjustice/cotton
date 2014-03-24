@@ -59,18 +59,3 @@ def force():
     skips questions, assumes you are always right
     """
     env.force = True
-
-
-def apply_configuration():
-    """
-    in provisioning mode it sets the ssh key from config file
-    if ssh_key is available than uses it as user ssh key
-
-    """
-    zone_config = get_provider_zone_config()
-    if env.provisioning:
-        env.key_filename = zone_config['provisioning_ssh_key']
-        env.user = zone_config['provisioning_user']
-    else:
-        if 'ssh_key' in zone_config:
-            env.key_filename = zone_config['ssh_key']

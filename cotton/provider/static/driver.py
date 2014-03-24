@@ -23,9 +23,8 @@ import copy
 import pprint
 from fabric.api import abort, env, prompt
 from cotton.colors import *
-from cotton.provider.driver import Server, Provider
+from cotton.provider.driver import Provider
 from cotton.config import get_config, get_provider_zone_config
-from cotton.api import provisioning, apply_configuration
 
 
 class StaticProvider(Provider):

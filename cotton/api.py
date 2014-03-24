@@ -1,13 +1,12 @@
 """
 basic api
 
-it's recommended to wrap every task with decorator @workon_fallback
+it's recommended to wrap every task with decorator @vm_task
 
 @vm_task
 def mytask():
     pass
 
-TODO: create task decorator that does the above
 
 """
 from __future__ import print_function
@@ -30,13 +29,13 @@ def load_provider(func):
     """
     @wraps(func)
     def inner(*args, **kwargs):
+        print(yellow("[{}]:".format(func.__name__)))
         start_time = time.time()
-
         get_provider_connection()
         ret = func(*args, **kwargs)
 
         end_time = time.time()
-        print(yellow("Duration: {:.2f}s".format(end_time - start_time)))
+        print(yellow("[{}] finished in: {:.2f}s".format(func.__name__, end_time - start_time)))
         return ret
     return inner
 
@@ -47,8 +46,9 @@ def get_provider_connection():
     """
     zone_config = get_provider_zone_config()
 
-    print(green("Selected provider zone config:"))
-    print(green(zone_config))
+    if 'verbose' in env and env.verbose:
+        print("Selected provider zone config:")
+        print(zone_config)
 
     if not 'provider' in env or not env.provider:
         p_class = provider_class(zone_config['driver'])
@@ -56,8 +56,8 @@ def get_provider_connection():
     return env.provider
 
 
-def workon_fallback(func):
-    raise NotImplementedError, "workon_fallback has been removed. Replace @workon_fallback and @task with just @vm_task"
+#def workon_fallback(func):
+#    raise NotImplementedError, "workon_fallback has been removed. Replace @workon_fallback and @task with just @vm_task"
 
 
 def vm_task(func):
@@ -77,6 +77,7 @@ def vm_task(func):
 
     @wraps(func)
     def inner(*args, **kwargs):
+        print(yellow("[{}]:".format(func.__name__)))
         start_time = time.time()
 
         if 'vm' not in env or not env.vm:
@@ -85,7 +86,7 @@ def vm_task(func):
         ret = func(*args, **kwargs)
 
         end_time = time.time()
-        print(yellow("Duration: {:.2f}s".format(end_time - start_time)))
+        print(yellow("[{}] finished in: {:.2f}s".format(func.__name__, end_time - start_time)))
         return ret
     return fabric.decorators.task(inner)
 
@@ -93,7 +94,6 @@ def vm_task(func):
 def configure_fabric_for_host(name):
     """
     loads provider and configures current host based on env.vm_name
-    unless env.vm is already set
 
     updated variables:
     env.provider
@@ -103,14 +103,13 @@ def configure_fabric_for_host(name):
     env.key_filename
     env.user if in provisioning mode
     """
-
     get_provider_connection()
     vms = env.provider.filter(name=name)
     assert len(vms) == 1
     env.vm = vms[0]
 
     get_provider_connection()
-    env.host = env.provider.host_string(env.vm)
+    env.host_string = env.provider.host_string(env.vm)
 
     zone_config = get_provider_zone_config()
     if env.provisioning:
@@ -149,6 +148,7 @@ def status():
     statuses = env.provider.status()
     for line in statuses:
         pprint.pprint(line)
+
 
 @task
 @load_provider

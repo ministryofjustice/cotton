@@ -14,6 +14,7 @@ from __future__ import print_function
 import pprint
 import time
 from functools import wraps
+import fabric.decorators
 from cotton.config import get_provider_zone_config
 
 from cotton.provider.driver import provider_class
@@ -80,12 +81,12 @@ def vm_task(func):
             return
         assert env.vm_name
         configure_fabric_for_host(env.vm_name)
-        ret = fabric.decorators.task(func(*args, **kwargs))
+        ret = func(*args, **kwargs)
 
         end_time = time.time()
         print(yellow("Duration: {:.2f}s".format(end_time - start_time)))
         return ret
-    return inner
+    return fabric.decorators.task(inner)
 
 
 def configure_fabric_for_host(name):

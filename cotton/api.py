@@ -77,7 +77,7 @@ def vm_task(func):
     def inner(*args, **kwargs):
         start_time = time.time()
 
-        if  'vm' not in env or not env.vm:
+        if 'vm' not in env or not env.vm:
             assert env.vm_name
             configure_fabric_for_host(env.vm_name)
         ret = func(*args, **kwargs)
@@ -126,7 +126,7 @@ def create(name=None, size=None):
         print(red("size argument for cotton.api.create is deprecated and will be removed shortly"))
     from cotton.fabextras import wait_for_shell
     vm = env.provider.create(name=name)
-    workon_vm_object(vm)
+    configure_fabric_for_host(name)  # TODO: we used to pass server object, check impact
     wait_for_shell()
 
 

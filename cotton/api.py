@@ -56,8 +56,8 @@ def get_provider_connection():
     return env.provider
 
 
-#def workon_fallback(func):
-#    raise NotImplementedError, "workon_fallback has been removed. Replace @workon_fallback and @task with just @vm_task"
+def workon_fallback(func):
+    raise NotImplementedError("workon_fallback has been removed. Replace @workon_fallback and @task with just @vm_task")
 
 
 def vm_task(func):

@@ -39,7 +39,7 @@ def ssh():
     from cotton.ssh_utils import ssh
     # Insecure
     insecure_string = ''
-    if 'insecure' in env and env.insecure:
+    if env.disable_known_hosts:
         insecure_string = "-o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no"
 
     ssh(ssh_opts=insecure_string)
@@ -110,7 +110,7 @@ def smart_rsync_project(*args, **kwargs):
         for_user = None
     directory = args[0]
   
-    if env.insecure:
+    if env.disable_known_hosts:
         kwargs['ssh_opts'] = kwargs.get('ssh_opts', '') + " -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no"
 
     if for_user:

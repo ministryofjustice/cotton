@@ -11,12 +11,8 @@ if 'project' not in env:
 if 'provider_zone' not in env:
     env.provider_zone = None
 
-if 'insecure' not in env:
-    env.insecure = False
-
 if 'force' not in env:
     env.force = False
-
 
 #???????
 if 'instances' not in env:
@@ -27,6 +23,7 @@ if 'instances' not in env:
 #        'privider': 'AWS',
 #    }
 #}
+
 @task
 def provisioning():
     """
@@ -49,10 +46,9 @@ def insecure():
     """
     switch into insecure mode
     this skips ssh host key verification for rsync
+    manages: env.disable_known_hosts
     """
-    env.insecure = True
     env.disable_known_hosts = True
-    #TODO: consider using only env.disable_known_hosts
 
 
 @task

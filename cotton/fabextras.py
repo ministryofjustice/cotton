@@ -3,9 +3,9 @@ import re
 import sys
 import time
 import getpass
-from fabric.api import settings, sudo, run, hide, local, task, parallel, env, open_shell
+from fabric.api import settings, sudo, run, hide, local, task, parallel, env
 
-from cotton.gw_rsync_project import gw_rsync_project
+from cotton.ssh_utils import rsync_project
 
 from fabric.exceptions import NetworkError
 from cotton.api import vm_task
@@ -35,20 +35,14 @@ def ipython():
 
 
 @vm_task
-def ssh_forked():
-    """
-    ssh to host (enables keep alive, forwards key)
-    passes through ^C
-    """
-    if 'key_filename' in env and env.key_filename:
-        local('ssh -o "ServerAliveInterval 30" -A -i "{key}" -p {port} {user}@{host}'.format(key=env.key_filename, user=env.user, host=env.host, port=env.port))
-    else:
-        local('ssh -o "ServerAliveInterval 30" -A -p {port} {user}@{host}'.format(key=env.key_filename, user=env.user, host=env.host, port=env.port))
-
-
-@vm_task
 def ssh():
-    open_shell()
+    from cotton.ssh_utils import ssh
+    # Insecure
+    insecure_string = ''
+    if env.disable_known_hosts:
+        insecure_string = "-o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no"
+
+    ssh(ssh_opts=insecure_string)
 
 
 @vm_task
@@ -116,15 +110,16 @@ def smart_rsync_project(*args, **kwargs):
         for_user = None
     directory = args[0]
   
-    if env.insecure:
-        kwargs['ssh_opts'] = "-o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no"
+    if env.disable_known_hosts:
+        kwargs['ssh_opts'] = kwargs.get('ssh_opts', '') + " -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no"
 
     if for_user:
-        sudo("find {} -type d -print0 | xargs -0 chmod u+rwx".format(directory))
-        sudo("chown -R {} {}".format(env.user, directory))
+        with settings(warn_only=True):
+            sudo("find {} -type d -print0 | xargs -I chmod u+rwx {{}}".format(directory))
+            sudo("chown -R {} {}".format(env.user, directory))
 
      
-    gw_rsync_project(*args, **kwargs)
+    rsync_project(*args, **kwargs)
 
     if for_user:
         sudo("chown -R {} {}".format(for_user, directory))

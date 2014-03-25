@@ -8,6 +8,7 @@ from tempfile import mkdtemp
 from fabric.network import needs_host, key_filenames, normalize
 from fabric.operations import local, run, sudo, put
 from fabric.state import env, output
+from fabric.api import task
 from fabric.context_managers import cd
 
 def ssh_gateway(user, host):
@@ -138,8 +139,8 @@ def gw_rsync_project(
     rsh_parts = [key_string, port_string, ssh_opts]
     proxy_string = ""
     if env.gateway:
-        print env.gateway
         proxy_string = '-o "ProxyCommand ssh {} {} nc %h %p"'.format(" ".join(rsh_parts), ssh_gateway(user, env.gateway))
+
     rsh_parts += [proxy_string]
     if any(rsh_parts):
         rsh_string = "--rsh='ssh %s'" % " ".join(rsh_parts)
@@ -156,7 +157,7 @@ def gw_rsync_project(
     if local_dir is None:
         local_dir = '../' + getcwd().split(sep)[-1]
     # Create and run final command string
-    remote_prefix = ssh_host_string(user,host)
+    remote_prefix = ssh_host_string(user, host)
     if upload:
         cmd = "rsync %s %s %s:%s" % (options, local_dir, remote_prefix, remote_dir)
     else:
@@ -166,3 +167,37 @@ def gw_rsync_project(
         print("[%s] rsync_project: %s" % (env.host_string, cmd))
     return local(cmd, capture=capture)
 
+
+@task
+@needs_host
+def gw_ssh():
+    # Keys
+    key_string = ''
+    keys = key_filenames()
+    if keys:
+        key_string = "-i " + " -i ".join(keys)
+
+    # Port
+    user, host, port = normalize(env.host_string)
+    port_string = "-p %s" % port
+
+    # Proxy
+    proxy_string = ''
+    if env.gateway:
+        gw_user, gw_host, gw_port = normalize(env.gateway)
+        gw_port_string = "-p %s" % gw_port
+        if '@' in env.gateway:
+            gw_user_host_string = env.gateway
+        else:
+            gw_user_host_string = ssh_host_string(user, env.gateway)
+        proxy_string = '-o "ProxyCommand ssh {key_string} {gw_port_string} {gw_user_host_string} nc %h %p"'.format(
+            key_string=key_string,
+            gw_port_string=gw_port_string,
+            gw_user_host_string=gw_user_host_string)
+
+    cmd = "ssh -A -o 'ServerAliveInterval 30' {key_string} {port_string} {user_host_string} {proxy_string}".format(
+        key_string=key_string,
+        port_string=port_string,
+        user_host_string=ssh_host_string(user, host),
+        proxy_string=proxy_string)
+    return local(cmd)

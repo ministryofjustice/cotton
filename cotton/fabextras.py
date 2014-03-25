@@ -5,7 +5,7 @@ import time
 import getpass
 from fabric.api import settings, sudo, run, hide, local, task, parallel, env, open_shell
 
-from cotton.gw_rsync_project import gw_rsync_project
+from cotton.gw_rsync_project import gw_rsync_project, gw_ssh
 
 from fabric.exceptions import NetworkError
 from cotton.api import vm_task
@@ -48,7 +48,7 @@ def ssh_forked():
 
 @vm_task
 def ssh():
-    open_shell()
+    gw_ssh()
 
 
 @vm_task

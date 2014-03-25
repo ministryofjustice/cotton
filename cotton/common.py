@@ -51,6 +51,8 @@ def insecure():
     this skips ssh host key verification for rsync
     """
     env.insecure = True
+    env.disable_known_hosts = True
+    #TODO: consider using only env.disable_known_hosts
 
 
 @task

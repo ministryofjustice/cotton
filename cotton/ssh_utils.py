@@ -11,6 +11,7 @@ from fabric.state import env, output
 from fabric.api import task
 from fabric.context_managers import cd
 
+
 def ssh_gateway(user, host):
     if host.find('@'):
         remote_prefix = host
@@ -34,7 +35,7 @@ def ssh_host_string(user, host):
 
 
 @needs_host
-def gw_rsync_project(
+def rsync_project(
     remote_dir,
     local_dir=None,
     exclude=(),
@@ -132,8 +133,8 @@ def gw_rsync_project(
         key_string = "-i " + " -i ".join(keys)
     # Port
     user, host, port = normalize(env.host_string)
-
     port_string = "-p %s" % port
+
     # RSH
     rsh_string = ""
     rsh_parts = [key_string, port_string, ssh_opts]
@@ -170,7 +171,7 @@ def gw_rsync_project(
 
 @task
 @needs_host
-def gw_ssh():
+def ssh(ssh_opts=''):
     # Keys
     key_string = ''
     keys = key_filenames()
@@ -190,13 +191,15 @@ def gw_ssh():
             gw_user_host_string = env.gateway
         else:
             gw_user_host_string = ssh_host_string(user, env.gateway)
-        proxy_string = '-o "ProxyCommand ssh {key_string} {gw_port_string} {gw_user_host_string} nc %h %p"'.format(
+        proxy_string = '-o "ProxyCommand ssh {key_string} {ssh_opts} {gw_port_string} {gw_user_host_string} nc %h %p"'.format(
             key_string=key_string,
+            ssh_opts=ssh_opts,
             gw_port_string=gw_port_string,
             gw_user_host_string=gw_user_host_string)
 
-    cmd = "ssh -A -o 'ServerAliveInterval 30' {key_string} {port_string} {user_host_string} {proxy_string}".format(
+    cmd = "ssh -A -o 'ServerAliveInterval 30' {key_string} {ssh_opts} {port_string} {user_host_string} {proxy_string}".format(
         key_string=key_string,
+        ssh_opts=ssh_opts,
         port_string=port_string,
         user_host_string=ssh_host_string(user, host),
         proxy_string=proxy_string)

@@ -6,7 +6,11 @@ root/
 """
 
 import os
+import tempfile
+import yaml
 from fabric.api import env
+
+from cotton.colors import *
 
 
 

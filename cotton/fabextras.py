@@ -115,7 +115,7 @@ def smart_rsync_project(*args, **kwargs):
 
     if for_user:
         with settings(warn_only=True):
-            sudo("find {} -type d -exec chmod u+rwx {{}} \\;".format(directory))
+            sudo("find {} -type d -exec chmod u+rwx {{}} +".format(directory))
             sudo("chown -R {} {}".format(env.user, directory))
 
     rsync_project(*args, **kwargs)

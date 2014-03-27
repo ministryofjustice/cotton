@@ -94,7 +94,14 @@ def get_provider_zone_config():
     config = get_config()
 
     if env.provider_zone in config['provider_zones']:
-        return config['provider_zones'][env.provider_zone]
+        zone = env.provider_zone
     else:
-        return config['provider_zones'][config['provider_zones']['default']]
+        zone = config['provider_zones']['default']
+
+
+    cfg = config['provider_zones'][zone]
+    if 'driver' not in cfg:
+        raise RuntimeError("Provider zone %s is missing the 'driver' option!" % zone)
+
+    return cfg
 

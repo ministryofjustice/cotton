@@ -14,6 +14,20 @@ from cotton.api import vm_task
 # http://stackoverflow.com/questions/14693701/how-can-i-remove-the-ansi-escape-sequences-from-a-string-in-python
 ansi_escape = re.compile(r'\x1b[^m]*m')
 
+@vm_task
+def iptables():
+    """ 
+    retrieve all iptables rules
+    """
+    command = "iptables -L"
+    run_on_all_hosts(command)
+
+def run_on_all_hosts(cmd):
+    """ 
+    Wrapper to run a given command on all hosts (including the master)
+    """
+    wrapped_command = "sudo salt '*' cmd.run '%s'" % cmd 
+    run(wrapped_command)
 
 @vm_task
 def uptime():

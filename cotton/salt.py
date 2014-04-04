@@ -98,9 +98,10 @@ def install_vendored_formulas(root_dir):
     if not os.path.exists(repos_dir):
         os.makedirs(repos_dir)
 
-    # Setup SSH to remove VisualHostKey
+    # Setup SSH to remove VisualHostKey - it breaks GitPython's attempt to
+    # parse git output :(
 
-    # Will delete itself once the file goes out of scope.
+    # Will delete file once the object gets GC'd
     git_ssh_wrapper = tempfile.NamedTemporaryFile(prefix='cotton-git-ssh')
 
     git_ssh_wrapper.write("""#!/bin/bash

@@ -4,4 +4,4 @@ PyYAML
 boto
 python-dateutil
 ipython
-GiyPython
+GitPython

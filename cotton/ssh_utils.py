@@ -13,7 +13,7 @@ from fabric.context_managers import cd
 
 
 def ssh_gateway(user, host):
-    if host.find('@'):
+    if host.find('@') != -1:
         remote_prefix = host
     elif host.count(':') > 1:
         # Square brackets are mandatory for IPv6 rsync address,

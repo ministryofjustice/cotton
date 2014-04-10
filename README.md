@@ -41,6 +41,7 @@ example ~/.cotton.yaml::
 
     provider_zones:
       aws_dev:
+        driver: aws
         aws_access_key_id: 'TBV'
         aws_secret_access_key: 'TBD'
         ssh_key: /Users/aceventura/.ssh/default

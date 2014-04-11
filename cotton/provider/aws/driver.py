@@ -79,7 +79,7 @@ class AWSProvider(Provider):
             old_name = server.tags.get("Name", "")
             new_name = "{}-deleting".format(old_name)
             server.add_tag("Name", new_name)
-            print(yellow("Renamed to: {}".format(new_name)))
+            print(green("Renamed to: {}".format(new_name)))
             self.connection.terminate_instances(instance_ids=[server.id])
             print("Terminated")
         else:
@@ -101,7 +101,7 @@ class AWSProvider(Provider):
                     if "Name" in instance.tags and instance.tags["Name"] == name:
                         instances.append(instance)
                         selected = True
-                        print("selected aws instance: {}".format(instance.id))
+                        print(green("Selected aws instance: {}".format(instance.id)))
 
             if not selected:
                 print(yellow("Warning: {} not found!".format(name), bold=True))

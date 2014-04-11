@@ -61,17 +61,22 @@ def get_config():
 
     # If a preferred location is specified in the hash the old path is deprecated and a warning
     # should be shown
+    # Last file in the list is the most important
     config_files = [
-        {'path': '../config/config.yaml',      'preferred': '../config/cotton.yaml'},
+        {'path': '../config/config.yaml',
+         'preferred': '../config/cotton.yaml'},
         {'path': '../config/cotton.yaml'},
-        {'path': '../config.user/config.yaml', 'preferred': '~/.cotton.yaml'},
-        {'path': '~/.config.yaml',             'preferred': '~/.cotton.yaml'},
-        {'path': '~/.cotton.yaml'}
     ]
     if 'project' in env and env.project:
-        config_files.insert(0, {'path': '../config/projects/{}/project.yaml'.format(env.project)})
-        config_files.insert(0, {'path': '../config/projects/{}/config.yaml'.format(env.project),
-                                'preferred': '../config/projects/{}/project.yaml'.format(env.project)})
+        config_files.append({'path': '../config/projects/{}/project.yaml'.format(env.project)})
+        config_files.append({'path': '../config/projects/{}/config.yaml'.format(env.project),
+                             'preferred': '../config/projects/{}/project.yaml'.format(env.project)})
+
+    config_files.append({'path': '../config.user/config.yaml',
+                         'preferred': '~/.cotton.yaml'})
+    config_files.append({'path': '~/.config.yaml',
+                         'preferred': '~/.cotton.yaml'})
+    config_files.append({'path': '~/.cotton.yaml'})
 
     merged_config = {}
     for config_file in config_files:

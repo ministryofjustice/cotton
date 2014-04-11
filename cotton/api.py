@@ -14,6 +14,7 @@ import pprint
 import time
 from functools import wraps
 import fabric.decorators
+from fabric.api import abort
 from cotton.config import get_provider_zone_config
 
 from cotton.provider.driver import provider_class
@@ -106,7 +107,9 @@ def configure_fabric_for_host(name):
     """
     get_provider_connection()
     vms = env.provider.filter(name=name)
-    assert len(vms) == 1
+    if not vms:
+        abort(red("VM name='{}' not found".format(name)))
+    # will pick first vm from list in case more are available
     env.vm = vms[0]
 
     get_provider_connection()

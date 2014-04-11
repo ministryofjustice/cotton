@@ -20,7 +20,10 @@ from cotton.colors import *
 def dict_deepmerge(source, target):
     """
     deep merges two dictionaries and returns merged value
-    a is merged on top of b (think python inheritance pattern)
+    'source' is merged on top of 'target'
+    think:
+     - python inheritance pattern
+     - final dictionary simulates left hand search
     """
     assert isinstance(source, dict)
     assert isinstance(target, dict)
@@ -53,37 +56,46 @@ def get_config():
     """
     if '__config' in env and env.__config:
         return env.__config
+    # TODO: Potentially cotton.yaml could contain key that will manage the list of files being merged.
+    # I.e.: cotton.configs = []
 
     # If a preferred location is specified in the hash the old path is deprecated and a warning
     # should be shown
+    # Last file in the list is the most important
     config_files = [
-        {'path': '../config/config.yaml',      'preferred': '../config/cotton.yaml'},
+        {'path': '../config/config.yaml',
+         'preferred': '../config/cotton.yaml'},
         {'path': '../config/cotton.yaml'},
-        {'path': '../config.user/config.yaml', 'preferred': '~/.cotton.yaml'},
-        {'path': '~/.config.yaml',             'preferred': '~/.cotton.yaml'},
-        {'path': '~/.cotton.yaml'}
     ]
     if 'project' in env and env.project:
-        config_files.append({'path': '../config/projects/{}/project.yaml'.format(env.project)})
         config_files.append({'path': '../config/projects/{}/config.yaml'.format(env.project),
                              'preferred': '../config/projects/{}/project.yaml'.format(env.project)})
+        config_files.append({'path': '../config/projects/{}/cotton.yaml'.format(env.project),
+                             'preferred': '../config/projects/{}/project.yaml'.format(env.project)})
+        config_files.append({'path': '../config/projects/{}/project.yaml'.format(env.project)})
 
-    config = {}
+    config_files.append({'path': '../config.user/config.yaml',
+                         'preferred': '~/.cotton.yaml'})
+    config_files.append({'path': '~/.config.yaml',
+                         'preferred': '~/.cotton.yaml'})
+    config_files.append({'path': '~/.cotton.yaml'})
+
+    merged_config = {}
     for config_file in config_files:
         config_filename = os.path.expanduser(config_file.get('path'))
         try:
-            data = _load_config_file(config_filename)
+            loaded_config = _load_config_file(config_filename)
             print(green("Loaded config: {}".format(config_filename)))
             if config_file.get('preferred'):
                 print(red("Deprecated location for {} - Please use {}".format(config_filename, config_file.get('preferred'))))
-            config = dict_deepmerge(data, config)
+            merged_config = dict_deepmerge(loaded_config, merged_config)
         except Exception as e:
             if 'preferred' not in config_file:
                 print(yellow("Warning - error loading config: {}".format(config_filename)))
                 print(yellow(e))
 
-    env.__config = config
-    return config
+    env.__config = merged_config
+    return merged_config
 
 
 def get_provider_zone_config():

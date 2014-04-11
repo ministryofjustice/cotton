@@ -29,13 +29,13 @@ def load_provider(func):
     """
     @wraps(func)
     def inner(*args, **kwargs):
-        print(yellow("[{}]:".format(func.__name__)))
+        print(green("[{}]:".format(func.__name__)))
         start_time = time.time()
         get_provider_connection()
         ret = func(*args, **kwargs)
 
         end_time = time.time()
-        print(yellow("[{}] finished in: {:.2f}s".format(func.__name__, end_time - start_time)))
+        print(green("[{}] finished in: {:.2f}s".format(func.__name__, end_time - start_time)))
         return ret
     return inner
 
@@ -77,16 +77,17 @@ def vm_task(func):
 
     @wraps(func)
     def inner(*args, **kwargs):
-        print(yellow("[{}]:".format(func.__name__)))
+        print(green("[{}:{}]".format(func.__name__, env.vm_name)))
         start_time = time.time()
 
         if 'vm' not in env or not env.vm:
             assert env.vm_name
             configure_fabric_for_host(env.vm_name)
+
         ret = func(*args, **kwargs)
 
         end_time = time.time()
-        print(yellow("[{}] finished in: {:.2f}s".format(func.__name__, end_time - start_time)))
+        print(green("[{}] finished in: {:.2f}s".format(func.__name__, end_time - start_time)))
         return ret
     return fabric.decorators.task(inner)
 

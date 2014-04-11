@@ -48,9 +48,13 @@ def get_rendered_pillar_location():
 
     i.e. you can use constructs like:
     {% include 'opg-lpa-dev/pillar/services.sls' %}
+
+    In case there is no top.sls in pillar root than it returns: None
     """
     from jinja2 import Environment
     from jinja2 import FileSystemLoader
+    from jinja2.exceptions import TemplateNotFound
+
     assert env.project
     projects_location = _get_projects_location()
 
@@ -59,7 +63,12 @@ def get_rendered_pillar_location():
                                  projects_location]))
 
     # let's get rendered top.sls for configured project
-    top_sls = jinja_env.get_template('top.sls').render()
+    try:
+        top_sls = jinja_env.get_template('top.sls').render()
+    except TemplateNotFound as e:
+        print(red("Missing top.sls in pillar location. Skipping rendering."))
+        return None
+
     top_content = yaml.load(top_sls)
 
     dest_location = tempfile.mkdtemp()
@@ -80,7 +89,7 @@ def get_rendered_pillar_location():
         with open(os.path.join(dest_location, template_file), 'w') as f:
             f.write(template_rendered)
 
-    print(yellow("Pillar was rendered in: {}".format(dest_location)))
+    print(green("Pillar was rendered in: {}".format(dest_location)))
     return dest_location
 
 

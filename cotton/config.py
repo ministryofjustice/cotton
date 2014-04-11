@@ -68,9 +68,11 @@ def get_config():
         {'path': '../config/cotton.yaml'},
     ]
     if 'project' in env and env.project:
-        config_files.append({'path': '../config/projects/{}/project.yaml'.format(env.project)})
         config_files.append({'path': '../config/projects/{}/config.yaml'.format(env.project),
                              'preferred': '../config/projects/{}/project.yaml'.format(env.project)})
+        config_files.append({'path': '../config/projects/{}/cotton.yaml'.format(env.project),
+                             'preferred': '../config/projects/{}/project.yaml'.format(env.project)})
+        config_files.append({'path': '../config/projects/{}/project.yaml'.format(env.project)})
 
     config_files.append({'path': '../config.user/config.yaml',
                          'preferred': '~/.cotton.yaml'})

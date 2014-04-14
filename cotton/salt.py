@@ -166,7 +166,7 @@ def install_vendored_formulas(root_dir):
 
         return wanted_formulas
 
-    def rev_to_sha(repo, origin, rev):
+    def rev_to_sha(repo, origin, formula):
         from git.exc import GitCommandError
 
         # Try to resovle the revision into a SHA. If rev is a tag or a SHA then
@@ -181,7 +181,7 @@ def install_vendored_formulas(root_dir):
             try:
                 # Try a tag first. Treat it as immutable so if we find it then
                 # we don't have to fetch the remote repo
-                tag = repo.tags[rev]
+                tag = repo.tags[formula['revision']]
                 return tag.commit.hexsha
             except IndexError:
                 pass
@@ -189,7 +189,7 @@ def install_vendored_formulas(root_dir):
             try:
                 # Next check for a branch - if it is one then we want to udpate
                 # as it might have changed since we last fetched
-                (full_ref,) = filter(lambda r: r.remote_head == rev, origin.refs)
+                (full_ref,) = filter(lambda r: r.remote_head == formula['revision'], origin.refs)
                 is_branch = True
 
                 # Don't treat the sha as resolved until we've updated the
@@ -201,7 +201,11 @@ def install_vendored_formulas(root_dir):
 
             # Could just be a SHA
             try:
-                sha = repo.git.rev_parse(formula['revision'])
+                if not is_branch:
+                    # Don't try to pass it to `git rev-parse` if we know it's a
+                    # branch - this would just return the *current* SHA but we
+                    # want to force an update
+                    sha = repo.git.rev_parse(formula['revision'])
             except GitCommandError:
                 # Maybe we just need to fetch first.
                 pass
@@ -219,7 +223,7 @@ def install_vendored_formulas(root_dir):
 
             msg = "Fetching %s" % origin.url
             if is_branch:
-                msg = msg + " to see if %s has changed" % rev
+                msg = msg + " to see if %s has changed" % formula['revision']
             sys.stdout.write(msg)
             origin.fetch(refspec="refs/tags/*:refs/tags/*")
             origin.fetch()
@@ -265,7 +269,8 @@ def install_vendored_formulas(root_dir):
 
             # Work out what the wanted sha is
             if 'sha' not in formula:
-                target_sha = rev_to_sha(repo, origin, formula['revision'])
+                logger.debug("Resolving {revision} for {name}".format(revision=formula['revision'], name=formula_name))
+                target_sha = rev_to_sha(repo, origin, formula)
                 if target_sha is None:
                     # This shouldn't happen as rev_to_sha should throw. Safety net
                     raise RuntimeError("No sha resolved!")
@@ -278,7 +283,7 @@ def install_vendored_formulas(root_dir):
                     raise RuntimeError(dedent("""
                         Formula revision clash for {name}:
                         - {old[revision]} <{old_sha}> (defined in {old[source]})
-                        + {new[revision]} <{new_saw}> (defined in {new[source]})""".format(
+                        + {new[revision]} <{new_sha}> (defined in {new[source]})""".format(
                         name=formula_name,
                         old=previously_fetched,
                         old_sha=previously_fetched['sha'][0:7],

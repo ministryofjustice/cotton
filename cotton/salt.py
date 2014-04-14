@@ -24,7 +24,7 @@ from cotton.colors import *
 
 logging.basicConfig()
 logger = logging.getLogger(__name__)
-
+#logger.setLevel(logging.DEBUG)
 
 def get_unrendered_pillar_location():
     """
@@ -100,7 +100,7 @@ def get_rendered_pillar_location():
 get_pillar_location = get_rendered_pillar_location
 
 
-def install_vendored_formulas(root_dir):
+def install_vendored_formulas(root_dir, override_version_from_toplevel=True):
     """
     Recursively walk formula-requirements.txt and manully pull in those
     versions of the specified formulas.
@@ -162,6 +162,7 @@ def install_vendored_formulas(root_dir):
                     'url': url,
                     'revision': rev or 'master',
                     'source': filename,
+                    'explicit_revision': bool(rev),
                 }
 
         return wanted_formulas
@@ -231,8 +232,9 @@ def install_vendored_formulas(root_dir):
 
             have_updated = True
 
+    top_level_requirements = os.path.join(root_dir, 'formula-requirements.txt')
     requirements_files = [
-        os.path.join(root_dir, 'formula-requirements.txt'),
+        top_level_requirements
     ]
 
     while len(requirements_files):
@@ -254,6 +256,9 @@ def install_vendored_formulas(root_dir):
                         new=formula)
                     ))
 
+            if req_file == top_level_requirements:
+                formula['top_level_requirement'] = True
+
             repo_dir = os.path.join(repos_dir, formula_name + "-formula")
 
             # Split things out into multiple steps and checks to be Ctrl-c resilient
@@ -268,7 +273,16 @@ def install_vendored_formulas(root_dir):
                 origin = repo.create_remote('origin', formula['url'])
 
             # Work out what the wanted sha is
-            if 'sha' not in formula:
+            if previously_fetched is not None and \
+               previously_fetched.get('top_level_requirement', False) and \
+               previously_fetched['explicit_revision'] and override_version_from_toplevel:
+                logger.info("Overriding {name} version of {new_ver} to {old_ver} from project formula requirements".format(
+                    name=formula_name,
+                    new_ver=formula['revision'],
+                    old_ver=previously_fetched['revision']
+                ))
+                formula['sha'] = previously_fetched['sha']
+            elif 'sha' not in formula:
                 logger.debug("Resolving {revision} for {name}".format(revision=formula['revision'], name=formula_name))
                 target_sha = rev_to_sha(repo, origin, formula)
                 if target_sha is None:
@@ -280,6 +294,7 @@ def install_vendored_formulas(root_dir):
                 # The revisions might be specified as different strings but
                 # resolve to the same. So resolve both and check
                 if previously_fetched['sha'] != formula['sha']:
+
                     raise RuntimeError(dedent("""
                         Formula revision clash for {name}:
                         - {old[revision]} <{old_sha}> (defined in {old[source]})

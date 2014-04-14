@@ -5,6 +5,7 @@ root/
 `-- config/projects/{project}/pillar/
 """
 
+import logging
 import os
 import re
 import shutil
@@ -13,13 +14,16 @@ import sys
 import tempfile
 import yaml
 
+from textwrap import dedent
+
 from fabric.api import env
 from git import Repo
 
 
 from cotton.colors import *
 
-
+logging.basicConfig()
+logger = logging.getLogger(__name__)
 
 
 def get_unrendered_pillar_location():
@@ -29,7 +33,7 @@ def get_unrendered_pillar_location():
     assert 'project' in env
     assert env.project
 
-    #TODO: render pillar template to stdout / temp directory to sync it? (or just generate one file for remote)
+    # TODO: render pillar template to stdout / temp directory to sync it? (or just generate one file for remote)
     fab_location = os.path.dirname(env.real_fabfile)
     pillar_location = os.path.abspath(os.path.join(fab_location, '../config/projects/{}/pillar'.format(env.project)))
 
@@ -97,6 +101,28 @@ get_pillar_location = get_rendered_pillar_location
 
 
 def install_vendored_formulas(root_dir):
+    """
+    Recursively walk formula-requirements.txt and manully pull in those
+    versions of the specified formulas.
+
+    The format of the file is simply a list of git-cloneable urls with an
+    optional revision specified on the end. At the moment the only form a
+    version comparison accepted is `==`. At the moment the version is anything
+    that git rev-parse understands.
+
+    Example::
+
+        git@github.com:ministryofjustice/ntp-formula.git==v1.2.3
+        git@github.com:ministryofjustice/repos-formula.git==my_branch
+        git@github.com:ministryofjustice/php-fpm-formula.git
+        git@github.com:ministryofjustice/utils-formula.git==
+        git@github.com:ministryofjustice/java-formula.git
+        git@github.com:ministryofjustice/redis-formula.git
+        git@github.com:ministryofjustice/logstash-formula.git
+        git@github.com:ministryofjustice/sensu-formula.git
+        git@github.com:ministryofjustice/rabbitmq-formula.git
+        git@github.com:saltstack-formulas/users-formula.git
+    """
 
     roots_dir = os.path.join(root_dir, 'vendor', '_root')
     repos_dir = os.path.join(root_dir, 'vendor', 'formula-repos')
@@ -131,9 +157,75 @@ def install_vendored_formulas(root_dir):
                 url = url.strip()
 
                 # TODO: Is this too simple parsing?
-                (name,) = re.search(r'/([^/]*?)(?:-formula)?(?:\.git)?$', url).groups()
-                wanted_formulas[name] = url
+                (url, name, rev,) = re.search(r'(.*?/([^/]*?)(?:-formula)?(?:\.git)?)(?:==(.*?))?$', url).groups()
+                wanted_formulas[name] = {
+                    'url': url,
+                    'revision': rev or 'master',
+                    'source': filename,
+                }
+
         return wanted_formulas
+
+    def rev_to_sha(repo, origin, rev):
+        from git.exc import GitCommandError
+
+        # Try to resovle the revision into a SHA. If rev is a tag or a SHA then
+        # try to avoid doing a fetch on the repo. If it is a branch then make
+        # sure it is the tip of that branch
+
+        have_updated = False
+        is_branch = False
+        sha = None
+
+        for attempt in range(0, 2):
+            try:
+                # Try a tag first. Treat it as immutable so if we find it then
+                # we don't have to fetch the remote repo
+                tag = repo.tags[rev]
+                return tag.commit.hexsha
+            except IndexError:
+                pass
+
+            try:
+                # Next check for a branch - if it is one then we want to udpate
+                # as it might have changed since we last fetched
+                (full_ref,) = filter(lambda r: r.remote_head == rev, origin.refs)
+                is_branch = True
+
+                # Don't treat the sha as resolved until we've updated the
+                # remote
+                if have_updated:
+                    sha = full_ref.commit.hexsha
+            except (ValueError, AssertionError):
+                pass
+
+            # Could just be a SHA
+            try:
+                sha = repo.git.rev_parse(formula['revision'])
+            except GitCommandError:
+                # Maybe we just need to fetch first.
+                pass
+
+            if sha is not None:
+                return sha
+
+            if have_updated:
+                # If we've already updated once and get here then we can't find it :(
+                raise RuntimeError("Could not find out what revision '{rev}' was for {url} (defined in {source}".format(
+                    rev=formula['revision'],
+                    url=formula['url'],
+                    source=formula['source'],
+                ))
+
+            msg = "Fetching %s" % origin.url
+            if is_branch:
+                msg = msg + " to see if %s has changed" % rev
+            sys.stdout.write(msg)
+            origin.fetch(refspec="refs/tags/*:refs/tags/*")
+            origin.fetch()
+            print(" done")
+
+            have_updated = True
 
     requirements_files = [
         os.path.join(root_dir, 'formula-requirements.txt'),
@@ -141,50 +233,81 @@ def install_vendored_formulas(root_dir):
 
     while len(requirements_files):
         req_file = requirements_files.pop()
+        logger.info("Checking %s" % req_file)
 
         wanted_formulas = get_formula_requirements(req_file)
-        for formula, url in wanted_formulas.iteritems():
-                if formula in fetched_formulas:
-                    assert fetched_formulas[formula] == url
-                    continue
+        for formula_name, formula in wanted_formulas.iteritems():
+            previously_fetched = None
+            if formula_name in fetched_formulas:
+                previously_fetched = fetched_formulas[formula_name]
+                if previously_fetched['url'] != formula['url']:
+                    raise RuntimeError(dedent("""
+                        Formula URL clash for {name}:
+                        - {old[url]} (defined in {old[source]})
+                        + {new[url]} (defined in {new[source]})""".format(
+                        name=formula_name,
+                        old=previously_fetched,
+                        new=formula)
+                    ))
 
-                repo_dir = os.path.join(repos_dir, formula + "-formula")
+            repo_dir = os.path.join(repos_dir, formula_name + "-formula")
 
-                # Split things out into multiple steps and checks to be Ctrl-c resilient
-                if os.path.isdir(repo_dir):
-                    repo = Repo(repo_dir)
-                else:
-                    repo = Repo.init(repo_dir)
+            # Split things out into multiple steps and checks to be Ctrl-c resilient
+            if os.path.isdir(repo_dir):
+                repo = Repo(repo_dir)
+            else:
+                repo = Repo.init(repo_dir)
 
-                try:
-                    origin = repo.remotes.origin
-                except AttributeError:
-                    origin = repo.create_remote('origin', url)
+            try:
+                origin = repo.remotes.origin
+            except AttributeError:
+                origin = repo.create_remote('origin', formula['url'])
 
-                try:
-                    wanted_ref = origin.refs.master
-                except (AttributeError, AssertionError):
-                    sys.stdout.write("Fetching %s" % url)
-                    origin.fetch()
-                    print(" done")
-                    wanted_ref = origin.refs.master
+            # Work out what the wanted sha is
+            if 'sha' not in formula:
+                target_sha = rev_to_sha(repo, origin, formula['revision'])
+                if target_sha is None:
+                    # This shouldn't happen as rev_to_sha should throw. Safety net
+                    raise RuntimeError("No sha resolved!")
+                formula['sha'] = target_sha
 
-                if repo.head.reference != wanted_ref:
-                    repo.head.reference = wanted_ref
-                    repo.head.reset(index=True, working_tree=True)
+            if previously_fetched is not None:
+                # The revisions might be specified as different strings but
+                # resolve to the same. So resolve both and check
+                if previously_fetched['sha'] != formula['sha']:
+                    raise RuntimeError(dedent("""
+                        Formula revision clash for {name}:
+                        - {old[revision]} <{old_sha}> (defined in {old[source]})
+                        + {new[revision]} <{new_saw}> (defined in {new[source]})""".format(
+                        name=formula_name,
+                        old=previously_fetched,
+                        old_sha=previously_fetched['sha'][0:7],
+                        new=formula,
+                        new_sha=formula['sha'][0:7])
+                    ))
+                continue
 
-                source = os.path.join(repo_dir, formula)
-                target = os.path.join(root_dir, 'vendor', '_root', formula)
-                if not os.path.exists(source):
-                    raise RuntimeError("%s: Source '%s' does not exist" % (name, source))
-                if os.path.exists(target):
-                    raise RuntimeError("%s: Target '%s' conflicts with something else" % (name,target))
-                os.symlink(source, target)
+            if not repo.head.is_valid() or repo.head.commit.hexsha != target_sha:
+                repo.head.reset(commit=target_sha, index=True, working_tree=True)
 
-                fetched_formulas[formula] = url
+            logger.debug("{formula} {revision}".format(formula=formula_name, revision=formula['revision']))
 
-                # Check for recursive formula dep.
-                req_file = os.path.join(repo_dir, 'formula-requirements.txt')
-                if os.path.isfile(req_file):
-                    requirements_files.append(req_file)
+            source = os.path.join(repo_dir, formula_name)
+            target = os.path.join(root_dir, 'vendor', '_root', formula_name)
+            if not os.path.exists(source):
+                raise RuntimeError("%s: Source '%s' does not exist" % (name, source))
+            if os.path.exists(target):
+                raise RuntimeError("%s: Target '%s' conflicts with something else" % (name, target))
+            os.symlink(source, target)
 
+            fetched_formulas[formula_name] = formula
+
+            # Check for recursive formula dep.
+            new_req_file = os.path.join(repo_dir, 'formula-requirements.txt')
+            if os.path.isfile(new_req_file):
+                logger.info(
+                    "Adding {new} to check form {old} {revision}".format(
+                        new=new_req_file,
+                        old=req_file,
+                        revision=formula['revision']))
+                requirements_files.append(new_req_file)

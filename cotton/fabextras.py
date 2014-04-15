@@ -36,7 +36,6 @@ def uptime():
     """
     run("uptime")
 
-
 @vm_task
 def ipython():
     """

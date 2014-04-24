@@ -187,7 +187,7 @@ class Shaker(object):
 
         target = os.path.join(self.roots_dir, formula['name'])
         if sha is None:
-            if os.path.exists(target):
+            if not os.path.exists(target):
                 raise RuntimeError("%s: Formula marked as resolved but target '%s' didn't exist" % (formula['name'], target))
             return target
 
@@ -255,8 +255,11 @@ class Shaker(object):
                     new_sha=formula['sha'][0:7])
                 ))
 
-            # Nothing needed - we're already at the right sha
+            # Nothing needed - we're already at a suitable sha from when we
+            # fetched it previously this run
             return None
+
+        return target_sha
 
     def _open_repo(self, repo_dir, upstream_url):
         # Split things out into multiple steps and checks to be Ctrl-c resilient

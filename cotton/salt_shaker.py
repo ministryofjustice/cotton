@@ -139,12 +139,12 @@ class Shaker(object):
 
             self.logger.info("Checking %s" % req_file)
             for formula in self.parse_requirements_file(req_file):
-                dir = self.install_requirement(formula)
+                (repo_dir, _) = self.install_requirement(formula)
 
                 self.fetched_formulas[formula['name']] = formula
 
                 # Check for recursive formula dep.
-                new_req_file = os.path.join(dir, 'formula-requirements.txt')
+                new_req_file = os.path.join(repo_dir, 'formula-requirements.txt')
                 if os.path.isfile(new_req_file):
                     self.logger.info(
                         "Adding {new} to check form {old} {revision}".format(
@@ -189,7 +189,7 @@ class Shaker(object):
         if sha is None:
             if not os.path.exists(target):
                 raise RuntimeError("%s: Formula marked as resolved but target '%s' didn't exist" % (formula['name'], target))
-            return target
+            return (repo_dir, target)
 
         # TODO: Check if the working tree is ditry, and (if request/flagged)
         # reset it to this sha
@@ -205,7 +205,7 @@ class Shaker(object):
             raise RuntimeError("%s: Target '%s' conflicts with something else" % (formula['name'], target))
         os.symlink(source, target)
 
-        return target
+        return (repo_dir, target)
 
     def _resolve_sha(self, formula, repo):
         """

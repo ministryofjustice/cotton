@@ -51,13 +51,14 @@ class Shaker(object):
         os.makedirs(self.roots_dir)
 
         # Ensure the repos_dir exists
-        if not os.path.exists(self.repos_dir):
+        try:
             os.makedirs(self.repos_dir)
+        except OSError:
+            pass
 
     def _setup_logger(self):
         logging.basicConfig()
         self.logger = logging.getLogger(__name__)
-        self.logger.setLevel(logging.DEBUG)
 
     def _setup_git(self):
         """

@@ -57,6 +57,7 @@ class Shaker(object):
     def _setup_logger(self):
         logging.basicConfig()
         self.logger = logging.getLogger(__name__)
+        self.logger.setLevel(logging.DEBUG)
 
     def _setup_git(self):
         """
@@ -183,17 +184,24 @@ class Shaker(object):
 
         repo = self._open_repo(repo_dir, formula['url'])
 
-        sha = self._resolve_sha(formula, repo)
+        sha = self._fetch_and_resolve_sha(formula, repo)
 
         target = os.path.join(self.roots_dir, formula['name'])
         if sha is None:
             if not os.path.exists(target):
                 raise RuntimeError("%s: Formula marked as resolved but target '%s' didn't exist" % (formula['name'], target))
-            return (repo_dir, target)
+            return repo_dir, target
 
-        # TODO: Check if the working tree is ditry, and (if request/flagged)
+        # TODO: Check if the working tree is dirty, and (if request/flagged)
         # reset it to this sha
-        if not repo.head.is_valid() or repo.head.commit.hexsha != sha:
+        if not repo.head.is_valid():
+            sys.stdout.write("Resetting invalid head on: {}\n".format(formula['name']))
+            logging.debug(formula)
+            repo.head.reset(commit=sha, index=True, working_tree=True)
+
+        if repo.head.commit.hexsha != sha:
+            sys.stdout.write("Resetting sha mismatch on: {}\n".format(formula['name']))
+            logging.debug(formula)
             repo.head.reset(commit=sha, index=True, working_tree=True)
 
         self.logger.debug("{formula[name]} {formula[revision]}".format(formula=formula))
@@ -205,9 +213,9 @@ class Shaker(object):
             raise RuntimeError("%s: Target '%s' conflicts with something else" % (formula['name'], target))
         os.symlink(source, target)
 
-        return (repo_dir, target)
+        return repo_dir, target
 
-    def _resolve_sha(self, formula, repo):
+    def _fetch_and_resolve_sha(self, formula, repo):
         """
         Work out what the wanted sha is for this formula. If we have already
         satisfied this requirement then return None, else return the sha we
@@ -315,7 +323,12 @@ class Shaker(object):
                     # Don't try to pass it to `git rev-parse` if we know it's a
                     # branch - this would just return the *current* SHA but we
                     # want to force an update
-                    sha = repo.git.rev_parse(formula['revision'])
+                    #
+                    # The $sha^{object} syntax says that this is a SHA *and
+                    # that* it is known in this repo. Without this git will
+                    # happily take a full sha and go 'yep, that looks like a
+                    #  valid sha. Tick'
+                    sha = repo.git.rev_parse('{formula[revision]}^{{object}}'.format( formula=formula) )
             except GitCommandError:
                 # Maybe we just need to fetch first.
                 pass

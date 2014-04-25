@@ -141,7 +141,7 @@ class Shaker(object):
             for formula in self.parse_requirements_file(req_file):
                 (repo_dir, _) = self.install_requirement(formula)
 
-                self.fetched_formulas[formula['name']] = formula
+                self.fetched_formulas.setdefault(formula['name'], formula)
 
                 # Check for recursive formula dep.
                 new_req_file = os.path.join(repo_dir, 'formula-requirements.txt')

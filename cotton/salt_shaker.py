@@ -215,6 +215,7 @@ class Shaker(object):
                 sys.stdout.write("Resetting sha mismatch on: {}\n".format(formula['name']))
                 logging.debug(formula)
                 repo.head.reset(commit=sha, index=True, working_tree=True)
+
             self.logger.debug("{formula[name]} {formula[revision]}".format(formula=formula))
 
         source = os.path.join(repo_dir, formula['name'])

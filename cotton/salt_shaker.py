@@ -32,7 +32,7 @@ class GitSshEnvWrapper(object):
 
         os.environ['GIT_SSH'] = self.git_ssh_wrapper.name
 
-    def __exit__(self):
+    def __exit__(self, exc_type, exc_value, traceback):
         if self.old_env_value is not None:
             os.environ['GIT_SSH'] = self.old_env_value
         else:
@@ -215,7 +215,6 @@ class Shaker(object):
                 sys.stdout.write("Resetting sha mismatch on: {}\n".format(formula['name']))
                 logging.debug(formula)
                 repo.head.reset(commit=sha, index=True, working_tree=True)
-
             self.logger.debug("{formula[name]} {formula[revision]}".format(formula=formula))
 
         source = os.path.join(repo_dir, formula['name'])

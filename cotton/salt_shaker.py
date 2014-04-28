@@ -11,6 +11,34 @@ from git.exc import GitCommandError
 from textwrap import dedent
 
 
+class GitSshEnvWrapper(object):
+    def __enter__(self):
+        """
+        Setup SSH to remove VisualHostKey - it breaks GitPython's attempt to
+        parse git output :(
+
+        Will delete file once the object gets GC'd
+        """
+
+        self.old_env_value = os.environ.get('GIT_SSH', None)
+
+        self.git_ssh_wrapper = tempfile.NamedTemporaryFile(prefix='cotton-git-ssh')
+
+        self.git_ssh_wrapper.write("""#!/bin/bash
+        ssh -o VisualHostKey=no "$@"
+        """)
+        self.git_ssh_wrapper.file.flush()
+        os.fchmod(self.git_ssh_wrapper.file.fileno(), stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
+
+        os.environ['GIT_SSH'] = self.git_ssh_wrapper.name
+
+    def __exit__(self):
+        if self.old_env_value is not None:
+            os.environ['GIT_SSH'] = self.old_env_value
+        else:
+            os.environ.pop('GIT_SSH')
+
+
 class Shaker(object):
     def __init__(self, root_dir, salt_root_path='vendor',
                  clone_path='formula-repos', salt_root='_root'):
@@ -25,7 +53,6 @@ class Shaker(object):
         self.roots_dir = os.path.join(root_dir, salt_root_path, salt_root)
         self.repos_dir = os.path.join(root_dir, salt_root_path, clone_path)
 
-        self._setup_git()
         self._setup_logger()
         self.fetched_formulas = {}
         self.parsed_requirements_files = set()
@@ -59,23 +86,6 @@ class Shaker(object):
     def _setup_logger(self):
         logging.basicConfig()
         self.logger = logging.getLogger(__name__)
-
-    def _setup_git(self):
-        """
-        Setup SSH to remove VisualHostKey - it breaks GitPython's attempt to
-        parse git output :(
-
-        Will delete file once the object gets GC'd
-        """
-        self.git_ssh_wrapper = tempfile.NamedTemporaryFile(prefix='cotton-git-ssh')
-
-        self.git_ssh_wrapper.write("""#!/bin/bash
-        ssh -o VisualHostKey=no "$@"
-        """)
-        self.git_ssh_wrapper.file.flush()
-        os.fchmod(self.git_ssh_wrapper.file.fileno(), stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
-
-        os.environ['GIT_SSH'] = self.git_ssh_wrapper.name
 
     def _is_from_top_level_requirement(self, file):
         return file == self.first_requirement_file
@@ -183,29 +193,30 @@ class Shaker(object):
 
         repo_dir = os.path.join(self.repos_dir, formula['name'] + "-formula")
 
-        repo = self._open_repo(repo_dir, formula['url'])
+        with GitSshEnvWrapper():
+            repo = self._open_repo(repo_dir, formula['url'])
 
-        sha = self._fetch_and_resolve_sha(formula, repo)
+            sha = self._fetch_and_resolve_sha(formula, repo)
 
-        target = os.path.join(self.roots_dir, formula['name'])
-        if sha is None:
-            if not os.path.exists(target):
-                raise RuntimeError("%s: Formula marked as resolved but target '%s' didn't exist" % (formula['name'], target))
-            return repo_dir, target
+            target = os.path.join(self.roots_dir, formula['name'])
+            if sha is None:
+                if not os.path.exists(target):
+                    raise RuntimeError("%s: Formula marked as resolved but target '%s' didn't exist" % (formula['name'], target))
+                return repo_dir, target
 
-        # TODO: Check if the working tree is dirty, and (if request/flagged)
-        # reset it to this sha
-        if not repo.head.is_valid():
-            sys.stdout.write("Resetting invalid head on: {}\n".format(formula['name']))
-            logging.debug(formula)
-            repo.head.reset(commit=sha, index=True, working_tree=True)
+            # TODO: Check if the working tree is dirty, and (if request/flagged)
+            # reset it to this sha
+            if not repo.head.is_valid():
+                sys.stdout.write("Resetting invalid head on: {}\n".format(formula['name']))
+                logging.debug(formula)
+                repo.head.reset(commit=sha, index=True, working_tree=True)
 
-        if repo.head.commit.hexsha != sha:
-            sys.stdout.write("Resetting sha mismatch on: {}\n".format(formula['name']))
-            logging.debug(formula)
-            repo.head.reset(commit=sha, index=True, working_tree=True)
+            if repo.head.commit.hexsha != sha:
+                sys.stdout.write("Resetting sha mismatch on: {}\n".format(formula['name']))
+                logging.debug(formula)
+                repo.head.reset(commit=sha, index=True, working_tree=True)
 
-        self.logger.debug("{formula[name]} {formula[revision]}".format(formula=formula))
+            self.logger.debug("{formula[name]} {formula[revision]}".format(formula=formula))
 
         source = os.path.join(repo_dir, formula['name'])
         if not os.path.exists(source):
@@ -329,7 +340,7 @@ class Shaker(object):
                     # that* it is known in this repo. Without this git will
                     # happily take a full sha and go 'yep, that looks like a
                     #  valid sha. Tick'
-                    sha = repo.git.rev_parse('{formula[revision]}^{{object}}'.format( formula=formula) )
+                    sha = repo.git.rev_parse('{formula[revision]}^{{object}}'.format(formula=formula))
             except GitCommandError:
                 # Maybe we just need to fetch first.
                 pass

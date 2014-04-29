@@ -78,12 +78,13 @@ def vm_task(func):
 
     @wraps(func)
     def inner(*args, **kwargs):
-        print(green("[{}:{}]".format(func.__name__, env.vm_name)))
-        start_time = time.time()
 
         if 'vm' not in env or not env.vm:
             assert env.vm_name
             configure_fabric_for_host(env.vm_name)
+
+        print(green("[{}:{}]".format(func.__name__, env.vm_name)))
+        start_time = time.time()
 
         ret = func(*args, **kwargs)
 
@@ -95,11 +96,12 @@ def vm_task(func):
 
 def configure_fabric_for_host(name):
     """
-    loads provider and configures current host based on env.vm_name
+    loads provider and configures current host based on name
 
     updated variables:
     env.provider
     env.vm
+    env.vm_name
     env.host_string
     env.host
     env.key_filename
@@ -111,6 +113,8 @@ def configure_fabric_for_host(name):
         abort(red("VM name='{}' not found".format(name)))
     # will pick first vm from list in case more are available
     env.vm = vms[0]
+
+    env.vm_name = name
 
     get_provider_connection()
     env.host_string = env.provider.host_string(env.vm)

@@ -21,7 +21,7 @@ setup(
         'jinja2',
         'python-dateutil',
         'pyyaml',
-        'GitPython',
+        'GitPython>=0.3.2.RC1',
     ],
     classifiers=[
     ],

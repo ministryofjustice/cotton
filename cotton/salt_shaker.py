@@ -207,16 +207,14 @@ class Shaker(object):
             # TODO: Check if the working tree is dirty, and (if request/flagged)
             # reset it to this sha
             if not repo.head.is_valid():
-                sys.stdout.write("Resetting invalid head on: {}\n".format(formula['name']))
-                logging.debug(formula)
+                logging.debug("Resetting invalid head on: {}\n".format(formula['name']))
                 repo.head.reset(commit=sha, index=True, working_tree=True)
 
             if repo.head.commit.hexsha != sha:
-                sys.stdout.write("Resetting sha mismatch on: {}\n".format(formula['name']))
-                logging.debug(formula)
+                logging.debug("Resetting sha mismatch on: {}\n".format(formula['name']))
                 repo.head.reset(commit=sha, index=True, working_tree=True)
 
-            self.logger.debug("{formula[name]} {formula[revision]}".format(formula=formula))
+            self.logger.debug("{formula[name]} is at {formula[revision]}".format(formula=formula))
 
         source = os.path.join(repo_dir, formula['name'])
         if not os.path.exists(source):

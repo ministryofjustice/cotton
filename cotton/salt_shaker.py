@@ -245,7 +245,9 @@ class Shaker(object):
             raise RuntimeError("%s: Source '%s' does not exist" % (formula['name'], source))
         if os.path.exists(target):
             raise RuntimeError("%s: Target '%s' conflicts with something else" % (formula['name'], target))
-        os.symlink(source, target)
+
+        relative_source = os.path.relpath(source, os.path.dirname(target))
+        os.symlink(relative_source, target)
 
         return repo_dir, target
 

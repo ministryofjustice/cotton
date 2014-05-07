@@ -40,6 +40,30 @@ class GitSshEnvWrapper(object):
 
 
 class Shaker(object):
+    """
+    Recursively walk formula-requirements.txt and manully pull in those
+    versions of the specified formulas.
+
+    The format of the file is simply a list of git-cloneable urls with an
+    optional revision specified on the end. At the moment the only form a
+    version comparison accepted is `==`. The version can be a tag, a branch
+    name or anything that ``git rev-parse`` understands (i.e. a plain sha or
+    the output of ``git describe`` such as ``v0.2.2-1-g1b520c5``).
+
+    Example::
+
+        git@github.com:ministryofjustice/ntp-formula.git==v1.2.3
+        git@github.com:ministryofjustice/repos-formula.git==my_branch
+        git@github.com:ministryofjustice/php-fpm-formula.git
+        git@github.com:ministryofjustice/utils-formula.git
+        git@github.com:ministryofjustice/java-formula.git
+        git@github.com:ministryofjustice/redis-formula.git==v0.2.2-1-g1b520c5
+        git@github.com:ministryofjustice/logstash-formula.git
+        git@github.com:ministryofjustice/sensu-formula.git
+        git@github.com:ministryofjustice/rabbitmq-formula.git
+        git@github.com:saltstack-formulas/users-formula.git
+    """
+
     def __init__(self, root_dir, salt_root_path='vendor',
                  clone_path='formula-repos', salt_root='_root'):
         """

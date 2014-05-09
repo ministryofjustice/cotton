@@ -13,9 +13,9 @@ from __future__ import print_function
 import pprint
 import time
 from functools import wraps
+from pptable import pptable
 import fabric.decorators
 from fabric.api import abort
-from cotton.config import get_provider_zone_config
 
 from cotton.provider.driver import provider_class
 from cotton.common import *
@@ -128,13 +128,31 @@ def configure_fabric_for_host(name):
             env.key_filename = zone_config['ssh_key']
 
 
+def dict_stringize_keys(data):
+    """
+    converts all keys within dictionary to strings
+    """
+    assert isinstance(data, dict)
+    res = {}
+
+    for k, v in data.iteritems():
+        if isinstance(v, dict):
+            res[str(k)] = dict_stringize_keys(v)
+        else:
+            res[str(k)] = v
+    return res
+
+
 @task
 @load_provider
-def create(name=None, size=None):
-    if size:
-        print(red("size argument for cotton.api.create is deprecated and will be removed shortly"))
+def create(name=None):
     from cotton.fabextras import wait_for_shell
-    vm = env.provider.create(name=name)
+
+    zone_config = get_provider_zone_config()
+    vm_spec = zone_config.get('vm-defaults', {})
+    vm_spec['name'] = name
+
+    vm = env.provider.create(**vm_spec)
     configure_fabric_for_host(name)  # TODO: we used to pass server object, check impact
     wait_for_shell()
 
@@ -154,8 +172,7 @@ def info():
 def status():
     #TODO: format output
     statuses = env.provider.status()
-    for line in statuses:
-        pprint.pprint(line)
+    pptable(statuses)
 
 
 @task

@@ -22,6 +22,9 @@ setup(
         'python-dateutil',
         'pyyaml',
         'GitPython>=0.3.2.RC1',
+        'apache-libcloud>=0.14.0-beta3',
+        'pptable',
+        'lxml'
     ],
     classifiers=[
     ],

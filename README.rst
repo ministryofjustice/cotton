@@ -8,7 +8,7 @@ It solves three problems:
  - how to store
    - shared organisation config
    - shared project config
-   - user unique/confidential config
+   - user unique/confidential config (typically used to store credentials only)
 
 Depends on following fabric env variables::
 
@@ -25,7 +25,6 @@ Environment is provider configuration.
 
 Assumes that your config directory is next to directory containing fabfile.py::
 
-
     root/
     |-- application-deployment/
     |   `-- fabfile.py
@@ -37,7 +36,6 @@ Assumes that your config directory is next to directory containing fabfile.py::
 
 
 example ~/.cotton.yaml::
-
 
     provider_zones:
       aws_dev:
@@ -52,3 +50,19 @@ example ~/.cotton.yaml::
             ip: 1.2.3.4
           - name: master-staging
             ip: 1.2.3.5
+      aws_staging:
+        image_id: ami-3a689f4d
+        provisioning_ssh_key: ../config/default.pem
+        provisioning_ssh_key_name: default
+        provisioning_user: ubuntu
+        gateway: 1.2.3.4
+        instance_type: m1.small
+        security_groups:
+          - default
+          - ssh
+          - web-server
+          - salt-master
+        provisioning_user: ubuntu
+        region_name: eu-west-1
+        driver: aws
+

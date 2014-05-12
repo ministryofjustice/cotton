@@ -15,7 +15,8 @@ from cotton.config import get_config
 from cotton.config import get_provider_zone_config
 import libcloud.compute.base
 from libcloud.compute.base import NodeImage
-from libcloud_skyscape import ImprovedVCloud_5_1_Driver
+from libcloud_extras import ImprovedVCloud_5_1_Driver
+
 
 class VCloudProvider(Provider):
     """
@@ -60,56 +61,9 @@ class VCloudProvider(Provider):
         """
         return: server object
         instance is booting so don't forget to cotton.fabextras.wait_for_shell()
+        NOTE: NotImplementedError
         """
-        print("name: {}".format(name))
-        print("size: {}".format(size))
-        print("vdc: {}".format(vdc))
-        print("net_fence: {}".format(net_fence))
-        print("network: {}".format(network))
-        print("ip_address: {}".format(ip_address))
-        zone_config = get_provider_zone_config()
-        memory = zone_config['sizes'][size]['memory']
-        cpu = zone_config['sizes'][size]['cpu']
-
-        result = self.filter(name=name)
-        if result:
-            abort(red("VM name already in use"))
-
-        assert size is not None
-        assert template is not None
-
-        image = NodeImage(
-            id='https://{}/api/vAppTemplate/vappTemplate-{}'.format(zone_config['api']['host'], template),
-            name=name,
-            driver=self.connection,
-        )
-
-        # Libcloud doesn't find networks right when the name is shared across vDCs.
-        res = self.connection.ex_query(
-            type='orgVdcNetwork',
-            filter='vdcName=={};name=={}'.format(vdc, network),
-            format='references'
-        )
-
-        if not res:
-            abort(red("Cannot find network '{}' in vDC '{}'!".format(network, vdc), bold=True))
-        network = res[0]['href']
-        print(res)
-        print("network: {}".format(network))
-
-        node = self.connection.create_node(
-            image=image,
-            name=name,
-            ex_vdc=vdc,
-            ex_vm_fence=net_fence,
-            ex_network=network,
-            ex_vm_memory=memory,
-            ex_vm_cpu=cpu,
-            ex_vm_names=[name],
-            ex_vm_ipmode=ip_address,
-        )
-        if tags:
-            self.connection.ex_set_metadata_entries(node, **tags)
+        raise NotImplementedError()
 
     def terminate(self, vapp):
         assert isinstance(vapp, libcloud.compute.base.Node)

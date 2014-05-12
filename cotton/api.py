@@ -98,6 +98,10 @@ def configure_fabric_for_host(name):
     """
     loads provider and configures current host based on name
 
+    if zone_config['gateway'] than it will be configured
+    if zone_config['ssh_key'] is supplied then we use it
+    if we are in provisioning mode than zone_config['provisioning_ssh_key'] & zone_config['provisioning_user'] is used
+
     updated variables:
     env.provider
     env.vm
@@ -120,12 +124,16 @@ def configure_fabric_for_host(name):
     env.host_string = env.provider.host_string(env.vm)
 
     zone_config = get_provider_zone_config()
+
     if env.provisioning:
         env.key_filename = zone_config['provisioning_ssh_key']
         env.user = zone_config['provisioning_user']
     else:
         if 'ssh_key' in zone_config:
             env.key_filename = zone_config['ssh_key']
+
+    if 'gateway' in zone_config:
+        env.gateway = '{}@{}'.format(env.user, zone_config['gateway'])
 
 
 def dict_stringize_keys(data):

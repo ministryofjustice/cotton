@@ -1,5 +1,6 @@
 cotton
 ======
+
 Project independent shared fabric extensions to bootstrap first VM.
 
 It solves three problems:
@@ -62,7 +63,13 @@ example ~/.cotton.yaml::
           - ssh
           - web-server
           - salt-master
-        provisioning_user: ubuntu
         region_name: eu-west-1
         driver: aws
 
+
+driver status
+-------------
+
+:aws: fully implemented
+:static: fully implemented (a good fallback for no api)
+:vcloud: only selection, status, filtering, termination, no provisioning part

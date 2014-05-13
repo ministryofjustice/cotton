@@ -6,12 +6,16 @@ root/
 """
 
 import os
+import pkgutil
 import tempfile
 import yaml
 
-from fabric.api import env
+from StringIO import StringIO
+
+from fabric.api import env, put, sudo
 
 from cotton.colors import *
+from cotton.api import vm_task, get_provider_zone_config
 
 
 def get_unrendered_pillar_location():
@@ -97,3 +101,63 @@ def get_rendered_pillar_location():
 
 
 get_pillar_location = get_rendered_pillar_location
+
+@vm_task
+def reset_roles():
+    """
+    reset role grains to the defaults specified in the provider_zone configuration
+    """
+    assert(env.vm_name)
+    (host,) = [x for x in get_provider_zone_config()['hosts'] if x['name'] == env.vm_name]
+    grains = host.get('roles', [])
+    print (env.domainname)
+    sudo('salt-call --local grains.setval roles "{}"'.format(grains))
+
+
+def _reconfig_minion(salt_server):
+    """
+
+    """
+    assert(salt_server)
+    assert(env.vm_name)
+    # The base-image may have a minion_id already defined - delete it
+    sudo('/bin/rm -f /etc/salt/minion_id')
+
+    fqdn = "{}.{}".format(env.vm_name, env.domainname)
+    minion_contents = {
+        'master': salt_server,
+        'id': fqdn
+    }
+
+    minion_configIO = StringIO(repr(minion_contents))
+    env.sudo_user = 'root'
+    put(minion_configIO, "/etc/salt/minion", use_sudo=True, mode=0644)
+    sudo("/bin/chown root:root /etc/salt/minion")
+
+def _bootstrap_salt(salt_server=None, flags=''):
+    if salt_server is None:
+
+        (master,) = [x for x in get_provider_zone_config()['hosts'] if x['name'] == 'master']
+        salt_server = master['ip']
+
+    _reconfig_minion(salt_server)
+    bootstrap_fh = StringIO(pkgutil.get_data(__package__, 'share/bootstrap-salt.sh'))
+    put(bootstrap_fh, "/tmp/bootstrap-salt.sh")
+    sudo("bash /tmp/bootstrap-salt.sh {} -A {}".format(flags, salt_server))
+    reset_roles()
+
+
+@vm_task
+def bootstrap_minion():
+    _bootstrap_salt()
+
+
+@vm_task
+def bootstrap_master():
+    # One extra step = push master config file
+    master_conf_fh = StringIO(pkgutil.get_data(__package__, 'share/bootstrap_master.conf'))
+    put(master_conf_fh, "/etc/salt/master", use_sudo=True, mode=0644)
+    sudo("/bin/chown root:root /etc/salt/master")
+
+    # Pass the -M flag to ensure master is created
+    _bootstrap_salt(flags='-M')

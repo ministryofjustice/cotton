@@ -139,7 +139,7 @@ def _reconfig_minion(salt_server):
     sudo("/bin/chown root:root /etc/salt/minion")
 
 
-def _bootstrap_salt(salt_server=None, flags=''):
+def _bootstrap_salt(salt_server=None, flags='', install_type=''):
     if salt_server is None:
 
         (master,) = [x for x in get_provider_zone_config()['hosts'] if x['name'] == 'master']
@@ -148,7 +148,7 @@ def _bootstrap_salt(salt_server=None, flags=''):
     _reconfig_minion(salt_server)
     bootstrap_fh = StringIO(pkgutil.get_data(__package__, 'share/bootstrap-salt.sh'))
     put(bootstrap_fh, "/tmp/bootstrap-salt.sh")
-    sudo("bash /tmp/bootstrap-salt.sh {} -A {}".format(flags, salt_server))
+    sudo("bash /tmp/bootstrap-salt.sh {} -A {} {}".format(flags, salt_server, install_type))
     reset_roles()
 
 

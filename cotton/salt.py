@@ -105,7 +105,8 @@ get_pillar_location = get_rendered_pillar_location
 @vm_task
 def reset_roles():
     """
-    reset role grains to the defaults specified in the provider_zone configuration
+    Reset salt role grains to the values specified in the provider_zone
+    configuration for the current host
     """
     assert(env.vm_name)
     (host,) = [x for x in get_provider_zone_config()['hosts'] if x['name'] == env.vm_name]
@@ -134,6 +135,7 @@ def _reconfig_minion(salt_server):
     put(minion_configIO, "/etc/salt/minion", use_sudo=True, mode=0644)
     sudo("/bin/chown root:root /etc/salt/minion")
 
+
 def _bootstrap_salt(salt_server=None, flags=''):
     if salt_server is None:
 
@@ -149,11 +151,58 @@ def _bootstrap_salt(salt_server=None, flags=''):
 
 @vm_task
 def bootstrap_minion():
+    """
+    Bootstrap a salt minion and connect it to the master in the current
+    enviroment.
+
+    It pulls values from the provider zone config. See `bootstrap_master`_ for
+    an example of the provider config. There must be a host called `master` defined in there
+    """
     _bootstrap_salt()
 
 
 @vm_task
 def bootstrap_master():
+    """
+    Bootstrap a minimal salt master on the current server (as configued via
+    ``workon``).
+
+    It relies upon get_provider_zone_config_ to have a host called 'master'. It
+    will also set the roles via `reset_roles`_ funciton.
+
+    An example of the provider config project.yaml::
+
+        provider_zones:
+          mv_project_staging2:
+            driver: static
+            domainname: staging2.my_project
+            hosts:
+              - name: jump
+                ip: 10.3.31.10
+                roles: [ jump ]
+              - name: master
+                ip: 10.3.31.11
+                roles: [ master ]
+              - name: monitoring-01
+                ip: 10.3.31.20
+                roles: [ monitoring.server ]
+                aliases: [ monitoring.local, sensu.local, graphite.local ]
+
+
+    ``roles`` is the authoritative list of salt roles to apply to this box.
+
+    ``aliases`` can be used by putting this snippet in your pillar/hosts.yaml file::
+
+        hosts:
+        {%- for host in env.zone_config['hosts'] %}
+          {{ host['ip'] }}:
+            - {{ host['name'] }}.{{ env.environment }}
+            {% for alias in host['aliases'] -%}
+            - {{ alias }}
+            {% endfor %}
+        {% endfor -%}
+
+    """
     # One extra step = push master config file
     master_conf_fh = StringIO(pkgutil.get_data(__package__, 'share/bootstrap_master.conf'))
     put(master_conf_fh, "/etc/salt/master", use_sudo=True, mode=0644)

@@ -14,7 +14,9 @@ from StringIO import StringIO
 
 from fabric.api import env, put, sudo
 
-from cotton.colors import *
+from fabric.api import task  # noqa
+
+from cotton.colors import red, yellow, green
 from cotton.api import vm_task, get_provider_zone_config
 
 
@@ -61,7 +63,7 @@ def get_rendered_pillar_location():
     # let's get rendered top.sls for configured project
     try:
         top_sls = jinja_env.get_template('top.sls').render(env=env)
-    except TemplateNotFound as e:
+    except TemplateNotFound:
         print(red("Missing top.sls in pillar location. Skipping rendering."))
         return None
 
@@ -77,20 +79,20 @@ def get_rendered_pillar_location():
     for k0, v0 in top_content.iteritems():
         for k1, v1 in v0.iteritems():
             for file_short in v1:
-                # We force this file to be relative in case jinja failed rendering 
-                # a variable. This would make the filename start with / and instead of 
-                # writing under dest_location it will try to write in / 
-                files_to_render.append('./' + file_short.replace('.','/') + '.sls')
+                # We force this file to be relative in case jinja failed rendering
+                # a variable. This would make the filename start with / and instead of
+                # writing under dest_location it will try to write in /
+                files_to_render.append('./' + file_short.replace('.', '/') + '.sls')
 
     # render and save templates
     for template_file in files_to_render:
         filename = os.path.abspath(os.path.join(dest_location, template_file))
         print(yellow("Pillar template_file: {} --> {}".format(template_file, filename)))
-        if os.path.isdir(os.path.dirname(filename)) == False:
+        if not os.path.isdir(os.path.dirname(filename)):
             os.makedirs(os.path.dirname(filename))
-        try: 
+        try:
             template_rendered = jinja_env.get_template(template_file).render(env=env)
-        except TemplateNotFound as e:
+        except TemplateNotFound:
             template_rendered = ''
             print(yellow("Pillar template_file not found: {} --> {}".format(template_file, filename)))
         with open(os.path.join(dest_location, template_file), 'w') as f:
@@ -101,6 +103,7 @@ def get_rendered_pillar_location():
 
 
 get_pillar_location = get_rendered_pillar_location
+
 
 @vm_task
 def reset_roles():

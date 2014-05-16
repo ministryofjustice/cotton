@@ -5,3 +5,6 @@ boto
 python-dateutil
 ipython
 GitPython
+apache-libcloud>=0.14.0-beta3
+pptable
+lxml

@@ -2,6 +2,7 @@ from __future__ import print_function
 import importlib
 from exceptions import NotImplementedError
 
+
 class Provider(object):
     def __init__(self, **kwargs):
         """
@@ -20,6 +21,10 @@ class Provider(object):
 
     def terminate(self, server):
         raise NotImplementedError()
+
+    def exists(self, name):
+        servers = self.filter(name=name)
+        return len(servers) > 0
 
     def filter(self, **kwargs):
         """
@@ -60,6 +65,7 @@ def provider_class(provider_name):
     provider_module = importlib.import_module('.'.join(provider_path.split('.')[:-1]))
 
     #pickup provider class
-    provider_class = getattr(provider_module, provider_path.split('.')[-1])
-    return provider_class
+    p_class = getattr(provider_module, provider_path.split('.')[-1])
+    assert issubclass(p_class, Provider)
+    return p_class
 

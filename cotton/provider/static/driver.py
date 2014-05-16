@@ -14,17 +14,9 @@ provider_zone:
 
 """
 from __future__ import print_function
-import boto.ec2
-import getpass
-import time
-import datetime
-import dateutil.parser
-import copy
-import pprint
-from fabric.api import abort, env, prompt
 from cotton.colors import *
 from cotton.provider.driver import Provider
-from cotton.config import get_config, get_provider_zone_config
+from cotton.config import get_provider_zone_config
 
 
 class StaticProvider(Provider):

@@ -13,6 +13,7 @@ from __future__ import print_function
 import pprint
 import time
 from functools import wraps
+
 from pptable import pptable
 import fabric.decorators
 from fabric.api import abort
@@ -20,6 +21,7 @@ from fabric.api import abort
 from cotton.provider.driver import provider_class
 from cotton.common import *
 from cotton.colors import *
+from cotton.config import get_provider_zone_config
 
 
 def load_provider(func):

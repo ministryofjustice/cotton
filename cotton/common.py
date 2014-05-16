@@ -1,6 +1,6 @@
 from __future__ import print_function
 from fabric.api import task, env
-from cotton.config import get_provider_zone_config
+
 
 if 'provisioning' not in env:
     env.provisioning = False
@@ -23,6 +23,7 @@ if 'instances' not in env:
 #        'privider': 'AWS',
 #    }
 #}
+
 
 @task
 def provisioning():

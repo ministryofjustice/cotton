@@ -3,16 +3,17 @@ import re
 import sys
 import time
 import getpass
+
 from fabric.api import settings, sudo, run, hide, local, task, parallel, env
+from fabric.exceptions import NetworkError
 
 from cotton.ssh_utils import rsync_project
-
-from fabric.exceptions import NetworkError
 from cotton.api import vm_task
 
 # thanks to
 # http://stackoverflow.com/questions/14693701/how-can-i-remove-the-ansi-escape-sequences-from-a-string-in-python
 ansi_escape = re.compile(r'\x1b[^m]*m')
+
 
 @vm_task
 def iptables():
@@ -21,6 +22,7 @@ def iptables():
     """
     command = "iptables -L"
     run_on_all_hosts(command)
+
 
 def run_on_all_hosts(cmd):
     """ 
@@ -35,6 +37,7 @@ def uptime():
     execute uptime
     """
     run("uptime")
+
 
 @vm_task
 def ipython():

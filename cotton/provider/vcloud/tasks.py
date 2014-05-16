@@ -1,7 +1,6 @@
-import sys
 import libcloud
 from fabric.api import task, env
-from cotton.api import vm_task, load_provider
+from cotton.api import load_provider
 from cotton.colors import *
 from pptable import pptable
 

@@ -2,6 +2,7 @@ from __future__ import print_function
 import importlib
 from exceptions import NotImplementedError
 
+
 class Provider(object):
     def __init__(self, **kwargs):
         """

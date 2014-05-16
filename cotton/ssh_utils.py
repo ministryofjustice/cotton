@@ -1,15 +1,11 @@
 from __future__ import with_statement
 
 from os import getcwd, sep
-import os.path
-from datetime import datetime
-from tempfile import mkdtemp
 
 from fabric.network import needs_host, key_filenames, normalize
-from fabric.operations import local, run, sudo, put
+from fabric.operations import local
 from fabric.state import env, output
 from fabric.api import task
-from fabric.context_managers import cd
 
 
 def ssh_gateway(user, host):

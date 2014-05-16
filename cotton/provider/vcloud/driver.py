@@ -1,21 +1,10 @@
 from __future__ import print_function
-import boto.ec2
-import getpass
-import time
-import datetime
-import dateutil.parser
-import copy
-import pprint
-from fabric.api import abort, env, prompt
-from xml.etree import ElementTree as ET
-from lxml import etree as lxml_ET
+from __future__ import absolute_import
 from cotton.colors import *
 from cotton.provider.driver import Provider
-from cotton.config import get_config
 from cotton.config import get_provider_zone_config
 import libcloud.compute.base
-from libcloud.compute.base import NodeImage
-from libcloud_extras import ImprovedVCloud_5_1_Driver
+from .libcloud_extras import ImprovedVCloud_5_1_Driver
 
 
 class VCloudProvider(Provider):
@@ -92,9 +81,6 @@ class VCloudProvider(Provider):
             for vapp in self._filter_to_vdc(self.connection.list_nodes()):
                 if vapp.name == name:
                     vapps.append(vapp)
-#            res = self.connection.ex_query('vApp', 'name=={}'.format(name))
-#            from IPython import embed
-#            embed()
             return self._filter_to_vdc(vapps)
         elif len(kwargs) == 0:
             return self._filter_to_vdc(self.connection.list_nodes())

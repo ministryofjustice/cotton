@@ -1,8 +1,8 @@
-from __future__ import print_function
-import sys
 """
 inspired buy fabric.colors but with tty detection support
 """
+from __future__ import print_function
+import sys
 
 #TODO: PR for fabric
 

@@ -12,6 +12,7 @@ from __future__ import print_function
 import yaml
 import os
 import copy
+
 from fabric.api import env
 from cotton.colors import *
 #TODO: add /etc/cotton/config.yaml support

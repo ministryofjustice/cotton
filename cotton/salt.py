@@ -6,12 +6,18 @@ root/
 """
 
 import os
+import pkgutil
 import tempfile
 import yaml
 
-from fabric.api import env
+from StringIO import StringIO
 
-from cotton.colors import *
+from fabric.api import env, put, sudo
+
+from fabric.api import task  # noqa
+
+from cotton.colors import red, yellow, green
+from cotton.api import vm_task, get_provider_zone_config
 
 
 def get_unrendered_pillar_location():
@@ -57,7 +63,7 @@ def get_rendered_pillar_location():
     # let's get rendered top.sls for configured project
     try:
         top_sls = jinja_env.get_template('top.sls').render(env=env)
-    except TemplateNotFound as e:
+    except TemplateNotFound:
         print(red("Missing top.sls in pillar location. Skipping rendering."))
         return None
 
@@ -73,20 +79,20 @@ def get_rendered_pillar_location():
     for k0, v0 in top_content.iteritems():
         for k1, v1 in v0.iteritems():
             for file_short in v1:
-                # We force this file to be relative in case jinja failed rendering 
-                # a variable. This would make the filename start with / and instead of 
-                # writing under dest_location it will try to write in / 
-                files_to_render.append('./' + file_short.replace('.','/') + '.sls')
+                # We force this file to be relative in case jinja failed rendering
+                # a variable. This would make the filename start with / and instead of
+                # writing under dest_location it will try to write in /
+                files_to_render.append('./' + file_short.replace('.', '/') + '.sls')
 
     # render and save templates
     for template_file in files_to_render:
         filename = os.path.abspath(os.path.join(dest_location, template_file))
         print(yellow("Pillar template_file: {} --> {}".format(template_file, filename)))
-        if os.path.isdir(os.path.dirname(filename)) == False:
+        if not os.path.isdir(os.path.dirname(filename)):
             os.makedirs(os.path.dirname(filename))
-        try: 
+        try:
             template_rendered = jinja_env.get_template(template_file).render(env=env)
-        except TemplateNotFound as e:
+        except TemplateNotFound:
             template_rendered = ''
             print(yellow("Pillar template_file not found: {} --> {}".format(template_file, filename)))
         with open(os.path.join(dest_location, template_file), 'w') as f:
@@ -97,3 +103,113 @@ def get_rendered_pillar_location():
 
 
 get_pillar_location = get_rendered_pillar_location
+
+
+@vm_task
+def reset_roles():
+    """
+    Reset salt role grains to the values specified in the provider_zone
+    configuration for the current host
+    """
+    assert(env.vm_name)
+    (host,) = [x for x in get_provider_zone_config()['hosts'] if x['name'] == env.vm_name]
+    grains = host.get('roles', [])
+    print (env.domainname)
+    sudo('salt-call --local grains.setval roles "{}"'.format(grains))
+
+
+def _reconfig_minion(salt_server):
+    """
+
+    """
+    assert(salt_server)
+    assert(env.vm_name)
+    # The base-image may have a minion_id already defined - delete it
+    sudo('/bin/rm -f /etc/salt/minion_id')
+
+    fqdn = "{}.{}".format(env.vm_name, env.domainname)
+    minion_contents = {
+        'master': salt_server,
+        'id': fqdn
+    }
+
+    minion_configIO = StringIO(repr(minion_contents))
+    env.sudo_user = 'root'
+    put(minion_configIO, "/etc/salt/minion", use_sudo=True, mode=0644)
+    sudo("/bin/chown root:root /etc/salt/minion")
+
+
+def _bootstrap_salt(salt_server=None, flags='', install_type=''):
+    if salt_server is None:
+
+        (master,) = [x for x in get_provider_zone_config()['hosts'] if x['name'] == 'master']
+        salt_server = master['ip']
+
+    _reconfig_minion(salt_server)
+    bootstrap_fh = StringIO(pkgutil.get_data(__package__, 'share/bootstrap-salt.sh'))
+    put(bootstrap_fh, "/tmp/bootstrap-salt.sh")
+    sudo("bash /tmp/bootstrap-salt.sh {} -A {} {}".format(flags, salt_server, install_type))
+    reset_roles()
+
+
+@vm_task
+def bootstrap_minion():
+    """
+    Bootstrap a salt minion and connect it to the master in the current
+    enviroment.
+
+    It pulls values from the provider zone config. See `bootstrap_master`_ for
+    an example of the provider config. There must be a host called `master` defined in there
+    """
+    _bootstrap_salt()
+
+
+@vm_task
+def bootstrap_master():
+    """
+    Bootstrap a minimal salt master on the current server (as configued via
+    ``workon``).
+
+    It relies upon get_provider_zone_config_ to have a host called 'master'. It
+    will also set the roles via `reset_roles`_ funciton.
+
+    An example of the provider config project.yaml::
+
+        provider_zones:
+          mv_project_staging2:
+            driver: static
+            domainname: staging2.my_project
+            hosts:
+              - name: jump
+                ip: 10.3.31.10
+                roles: [ jump ]
+              - name: master
+                ip: 10.3.31.11
+                roles: [ master ]
+              - name: monitoring-01
+                ip: 10.3.31.20
+                roles: [ monitoring.server ]
+                aliases: [ monitoring.local, sensu.local, graphite.local ]
+
+
+    ``roles`` is the authoritative list of salt roles to apply to this box.
+
+    ``aliases`` can be used by putting this snippet in your pillar/hosts.yaml file::
+
+        hosts:
+        {%- for host in env.zone_config['hosts'] %}
+          {{ host['ip'] }}:
+            - {{ host['name'] }}.{{ env.environment }}
+            {% for alias in host['aliases'] -%}
+            - {{ alias }}
+            {% endfor %}
+        {% endfor -%}
+
+    """
+    # One extra step = push master config file
+    master_conf_fh = StringIO(pkgutil.get_data(__package__, 'share/bootstrap_master.conf'))
+    put(master_conf_fh, "/etc/salt/master", use_sudo=True, mode=0644)
+    sudo("/bin/chown root:root /etc/salt/master")
+
+    # Pass the -M flag to ensure master is created
+    _bootstrap_salt(flags='-M')

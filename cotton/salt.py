@@ -139,36 +139,23 @@ def _reconfig_minion(salt_server):
     sudo("/bin/chown root:root /etc/salt/minion")
 
 
-def _bootstrap_salt(salt_server=None, flags='', install_type=''):
-    if salt_server is None:
+def _bootstrap_salt(master=None, flags='', install_type=''):
+    if master is None:
+        (master_info,) = [x for x in get_provider_zone_config()['hosts'] if x['name'] == 'master']
+        master = master_info['ip']
 
-        (master,) = [x for x in get_provider_zone_config()['hosts'] if x['name'] == 'master']
-        salt_server = master['ip']
-
-    _reconfig_minion(salt_server)
+    _reconfig_minion(master)
     bootstrap_fh = StringIO(pkgutil.get_data(__package__, 'share/bootstrap-salt.sh'))
     put(bootstrap_fh, "/tmp/bootstrap-salt.sh")
-    sudo("bash /tmp/bootstrap-salt.sh {} -A {} {}".format(flags, salt_server, install_type))
+    sudo("bash /tmp/bootstrap-salt.sh {} -A {} {}".format(flags, master, install_type))
     reset_roles()
 
 
 @vm_task
-def bootstrap_minion():
+def bootstrap_minion(master=None):
     """
     Bootstrap a salt minion and connect it to the master in the current
     enviroment.
-
-    It pulls values from the provider zone config. See `bootstrap_master`_ for
-    an example of the provider config. There must be a host called `master` defined in there
-    """
-    _bootstrap_salt()
-
-
-@vm_task
-def bootstrap_master():
-    """
-    Bootstrap a minimal salt master on the current server (as configued via
-    ``workon``).
 
     It relies upon get_provider_zone_config_ to have a host called 'master'. It
     will also set the roles via `reset_roles`_ funciton.
@@ -206,10 +193,20 @@ def bootstrap_master():
         {% endfor -%}
 
     """
+    _bootstrap_salt(master)
+
+
+@vm_task
+def bootstrap_master():
+    """
+    Bootstrap a minimal salt master on the current server (as configued via
+    ``workon``).
+
+    """
     # One extra step = push master config file
     master_conf_fh = StringIO(pkgutil.get_data(__package__, 'share/bootstrap_master.conf'))
     put(master_conf_fh, "/etc/salt/master", use_sudo=True, mode=0644)
     sudo("/bin/chown root:root /etc/salt/master")
 
     # Pass the -M flag to ensure master is created
-    _bootstrap_salt(flags='-M')
+    _bootstrap_salt(master='localhost', flags='-M')

@@ -106,16 +106,16 @@ get_pillar_location = get_rendered_pillar_location
 
 
 @vm_task
-def reset_roles():
+def reset_roles(roles=None):
     """
     Reset salt role grains to the values specified in the provider_zone
     configuration for the current host
     """
-    assert(env.vm_name)
-    (host,) = [x for x in get_provider_zone_config()['hosts'] if x['name'] == env.vm_name]
-    grains = host.get('roles', [])
-    print (env.domainname)
-    sudo('salt-call --local grains.setval roles "{}"'.format(grains))
+    if roles is None:
+        assert(env.vm_name)
+        (host,) = [x for x in get_provider_zone_config()['hosts'] if x['name'] == env.vm_name]
+        roles = host.get('roles', [])
+    sudo('salt-call --local grains.setval roles "{}"'.format(roles))
 
 
 def _reconfig_minion(salt_server):
@@ -124,6 +124,7 @@ def _reconfig_minion(salt_server):
     """
     assert(salt_server)
     assert(env.vm_name)
+    assert(env.domainname)
     # The base-image may have a minion_id already defined - delete it
     sudo('/bin/rm -f /etc/salt/minion_id')
 
@@ -139,7 +140,7 @@ def _reconfig_minion(salt_server):
     sudo("/bin/chown root:root /etc/salt/minion")
 
 
-def _bootstrap_salt(master=None, flags='', install_type=''):
+def _bootstrap_salt(master=None, flags='', install_type='', roles=None):
     if master is None:
         (master_info,) = [x for x in get_provider_zone_config()['hosts'] if x['name'] == 'master']
         master = master_info['ip']
@@ -148,7 +149,7 @@ def _bootstrap_salt(master=None, flags='', install_type=''):
     bootstrap_fh = StringIO(pkgutil.get_data(__package__, 'share/bootstrap-salt.sh'))
     put(bootstrap_fh, "/tmp/bootstrap-salt.sh")
     sudo("bash /tmp/bootstrap-salt.sh {} -A {} {}".format(flags, master, install_type))
-    reset_roles()
+    reset_roles(roles)
 
 
 @vm_task
@@ -193,11 +194,11 @@ def bootstrap_minion(master=None):
         {% endfor -%}
 
     """
-    _bootstrap_salt(master)
+    _bootstrap_salt(master, roles)
 
 
 @vm_task
-def bootstrap_master():
+def bootstrap_master(roles=None):
     """
     Bootstrap a minimal salt master on the current server (as configued via
     ``workon``).
@@ -209,4 +210,4 @@ def bootstrap_master():
     sudo("/bin/chown root:root /etc/salt/master")
 
     # Pass the -M flag to ensure master is created
-    _bootstrap_salt(master='localhost', flags='-M')
+    _bootstrap_salt(master='localhost', flags='-M', roles=roles)

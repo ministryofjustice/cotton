@@ -206,6 +206,7 @@ def bootstrap_master(roles=None):
     """
     # One extra step = push master config file
     master_conf_fh = StringIO(pkgutil.get_data(__package__, 'share/bootstrap_master.conf'))
+    sudo("mkdir -p /etc/salt")
     put(master_conf_fh, "/etc/salt/master", use_sudo=True, mode=0644)
     sudo("/bin/chown root:root /etc/salt/master")
 

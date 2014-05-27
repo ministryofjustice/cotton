@@ -14,6 +14,7 @@ from cotton.colors import *
 from cotton.provider.driver import Provider
 from cotton.config import get_provider_zone_config
 
+
 class AWSProvider(Provider):
 
     connection = None
@@ -117,6 +118,7 @@ class AWSProvider(Provider):
         returns dictionary with info about server
         """
         info_dict = dict()
+        info_dict["ip"] = server.private_ip_address
         info_dict["hostname"] = server.public_dns_name
         info_dict["id"] = server.id
         info_dict["type"] = server.instance_type
@@ -124,7 +126,19 @@ class AWSProvider(Provider):
         info_dict["state"] = server.state
         info_dict["architecture"] = server.architecture
         info_dict["age"] = datetime.datetime.now()-dateutil.parser.parse(server.launch_time).replace(tzinfo=None)
-        info_dict["tags"] = copy.deepcopy(server.tags)
+        tags = info_dict["tags"] = copy.deepcopy(server.tags)
+
+        if "Role" in tags:
+            info_dict["roles"] = [tags["Role"]]
+        elif "Roles" in tags:
+            info_dict["roles"] = tags["Roles"].split(',')
+        elif "roles" in tags:
+            info_dict["roles"] = tags["roles"].split(',')
+        else:
+            info_dict["roles"] = []
+
+        info_dict["roles"] = map(lambda x: x.encode('utf-8'), info_dict["roles"])
+
         return info_dict
 
     def host_string(self, server):

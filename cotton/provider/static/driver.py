@@ -69,8 +69,8 @@ class StaticProvider(Provider):
         """
         returns dictionary with info about server
         """
-        return server
+        # Clone it to make sure people don't change it unintentionally
+        return dict(server)
 
     def host_string(self, server):
-        #TODO: where to select user/provisioning mode
         return self.info(server)["ip"]

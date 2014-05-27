@@ -106,16 +106,16 @@ get_pillar_location = get_rendered_pillar_location
 
 
 @vm_task
-def reset_roles():
+def reset_roles(roles=None):
     """
     Reset salt role grains to the values specified in the provider_zone
     configuration for the current host
     """
-    assert(env.vm_name)
-    (host,) = [x for x in get_provider_zone_config()['hosts'] if x['name'] == env.vm_name]
-    grains = host.get('roles', [])
-    print (env.domainname)
-    sudo('salt-call --local grains.setval roles "{}"'.format(grains))
+    if roles is None:
+        assert(env.vm)
+        info = env.provider.info(env.vm)
+        roles = info.get('roles', [])
+    sudo('salt-call --local grains.setval roles "{}"'.format(roles))
 
 
 def _reconfig_minion(salt_server):
@@ -124,6 +124,7 @@ def _reconfig_minion(salt_server):
     """
     assert(salt_server)
     assert(env.vm_name)
+    assert(env.domainname)
     # The base-image may have a minion_id already defined - delete it
     sudo('/bin/rm -f /etc/salt/minion_id')
 
@@ -139,36 +140,27 @@ def _reconfig_minion(salt_server):
     sudo("/bin/chown root:root /etc/salt/minion")
 
 
-def _bootstrap_salt(salt_server=None, flags='', install_type=''):
-    if salt_server is None:
+def _bootstrap_salt(master=None, flags='', install_type='', roles=None):
+    if master is None:
+        (server,) = env.provider.filter(name="master")
+        if server:
+            master_info = env.provider.info(server)
+            master = master_info['ip']
+        else:
+            raise ValueError("No salt master hostname provided and no server 'master' found")
 
-        (master,) = [x for x in get_provider_zone_config()['hosts'] if x['name'] == 'master']
-        salt_server = master['ip']
-
-    _reconfig_minion(salt_server)
+    _reconfig_minion(master)
     bootstrap_fh = StringIO(pkgutil.get_data(__package__, 'share/bootstrap-salt.sh'))
     put(bootstrap_fh, "/tmp/bootstrap-salt.sh")
-    sudo("bash /tmp/bootstrap-salt.sh {} -A {} {}".format(flags, salt_server, install_type))
-    reset_roles()
+    sudo("bash /tmp/bootstrap-salt.sh {} -A {} {}".format(flags, master, install_type))
+    reset_roles(roles)
 
 
 @vm_task
-def bootstrap_minion():
+def bootstrap_minion(master=None):
     """
     Bootstrap a salt minion and connect it to the master in the current
     enviroment.
-
-    It pulls values from the provider zone config. See `bootstrap_master`_ for
-    an example of the provider config. There must be a host called `master` defined in there
-    """
-    _bootstrap_salt()
-
-
-@vm_task
-def bootstrap_master():
-    """
-    Bootstrap a minimal salt master on the current server (as configued via
-    ``workon``).
 
     It relies upon get_provider_zone_config_ to have a host called 'master'. It
     will also set the roles via `reset_roles`_ funciton.
@@ -206,10 +198,21 @@ def bootstrap_master():
         {% endfor -%}
 
     """
+    _bootstrap_salt(master, roles)
+
+
+@vm_task
+def bootstrap_master(roles=None):
+    """
+    Bootstrap a minimal salt master on the current server (as configued via
+    ``workon``).
+
+    """
     # One extra step = push master config file
     master_conf_fh = StringIO(pkgutil.get_data(__package__, 'share/bootstrap_master.conf'))
+    sudo("mkdir -p /etc/salt")
     put(master_conf_fh, "/etc/salt/master", use_sudo=True, mode=0644)
     sudo("/bin/chown root:root /etc/salt/master")
 
     # Pass the -M flag to ensure master is created
-    _bootstrap_salt(flags='-M')
+    _bootstrap_salt(master='localhost', flags='-M', roles=roles)

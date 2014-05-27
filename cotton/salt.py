@@ -112,9 +112,9 @@ def reset_roles(roles=None):
     configuration for the current host
     """
     if roles is None:
-        assert(env.vm_name)
-        (host,) = [x for x in get_provider_zone_config()['hosts'] if x['name'] == env.vm_name]
-        roles = host.get('roles', [])
+        assert(env.vm)
+        info = env.provider.info(env.vm)
+        roles = info.get('roles', [])
     sudo('salt-call --local grains.setval roles "{}"'.format(roles))
 
 
@@ -142,8 +142,12 @@ def _reconfig_minion(salt_server):
 
 def _bootstrap_salt(master=None, flags='', install_type='', roles=None):
     if master is None:
-        (master_info,) = [x for x in get_provider_zone_config()['hosts'] if x['name'] == 'master']
-        master = master_info['ip']
+        (server,) = env.provider.filter(name="master")
+        if server:
+            master_info = env.provider.info(server)
+            master = master_info['ip']
+        else:
+            raise ValueError("No salt master hostname provided and no server 'master' found")
 
     _reconfig_minion(master)
     bootstrap_fh = StringIO(pkgutil.get_data(__package__, 'share/bootstrap-salt.sh'))

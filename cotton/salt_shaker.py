@@ -11,6 +11,10 @@ from git.exc import GitCommandError
 from textwrap import dedent
 
 
+SSH_WRAPPER_SCRIPT = """#!/bin/bash
+ssh -o VisualHostKey=no "$@"
+"""
+
 class GitSshEnvWrapper(object):
     def __enter__(self):
         """
@@ -24,11 +28,10 @@ class GitSshEnvWrapper(object):
 
         self.git_ssh_wrapper = tempfile.NamedTemporaryFile(prefix='cotton-git-ssh')
 
-        self.git_ssh_wrapper.write("""#!/bin/bash
-        ssh -o VisualHostKey=no "$@"
-        """)
+        self.git_ssh_wrapper.write(SSH_WRAPPER_SCRIPT)
         self.git_ssh_wrapper.file.flush()
         os.fchmod(self.git_ssh_wrapper.file.fileno(), stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
+        self.git_ssh_wrapper.file.close()
 
         os.environ['GIT_SSH'] = self.git_ssh_wrapper.name
 

@@ -3,7 +3,7 @@ root/
 |-- application-deployment/
 |   `-- fabfile.py
 |
-|-- ~/.cotton.yaml
+|-- ~/.cotton.yaml / ${COTTON_CONFIG}
 |-- config/projects/{project}/project.yaml
 `-- config/cotton.yaml
 
@@ -75,11 +75,15 @@ def get_config():
                              'preferred': '../config/projects/{}/project.yaml'.format(env.project)})
         config_files.append({'path': '../config/projects/{}/project.yaml'.format(env.project)})
 
-    config_files.append({'path': '../config.user/config.yaml',
-                         'preferred': '~/.cotton.yaml'})
-    config_files.append({'path': '~/.config.yaml',
-                         'preferred': '~/.cotton.yaml'})
-    config_files.append({'path': '~/.cotton.yaml'})
+    os_env_cotton_config = os.environ.get('COTTON_CONFIG', None)
+    if os_env_cotton_config:
+        config_files.append({'path': os_env_cotton_config})
+    else:
+        config_files.append({'path': '../config.user/config.yaml',
+                             'preferred': '~/.cotton.yaml'})
+        config_files.append({'path': '~/.config.yaml',
+                             'preferred': '~/.cotton.yaml'})
+        config_files.append({'path': '~/.cotton.yaml'})
 
     merged_config = {}
     for config_file in config_files:

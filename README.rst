@@ -30,7 +30,7 @@ Assumes that your config directory is next to directory containing fabfile.py::
     |-- application-deployment/
     |   `-- fabfile.py
     |
-    |-- ~/.cotton.yaml
+    |-- ~/.cotton.yaml / ${COTTON_CONFIG}
     |-- config/projects/{project}/project.yaml
     `-- config/cotton.yaml
 

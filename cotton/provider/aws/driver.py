@@ -46,7 +46,7 @@ class AWSProvider(Provider):
 
         result = self.filter(name=name)
         if result:
-            raise ValueError(red("VM name already in use"))
+            raise ValueError("VM name already in use")
 
         run_instances_args = dict()
         run_instances_args['image_id'] = zone_config['image_id']

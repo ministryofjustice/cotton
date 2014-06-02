@@ -162,7 +162,10 @@ def create(name=None):
     vm_spec = zone_config.get('vm-defaults', {})
     vm_spec['name'] = name
 
-    vm = env.provider.create(**vm_spec)
+    try:
+        vm = env.provider.create(**vm_spec)
+    except ValueError as e:
+        abort(red(e))
     configure_fabric_for_host(name)  # TODO: we used to pass server object, check impact
     wait_for_shell()
 

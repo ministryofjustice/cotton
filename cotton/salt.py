@@ -136,6 +136,7 @@ def _reconfig_minion(salt_server):
 
     minion_configIO = StringIO(repr(minion_contents))
     env.sudo_user = 'root'
+    sudo("mkdir -p /etc/salt")
     put(minion_configIO, "/etc/salt/minion", use_sudo=True, mode=0644)
     sudo("/bin/chown root:root /etc/salt/minion")
 
@@ -157,7 +158,7 @@ def _bootstrap_salt(master=None, flags='', install_type='', roles=None):
 
 
 @vm_task
-def bootstrap_minion(master=None):
+def bootstrap_minion(**kwargs):
     """
     Bootstrap a salt minion and connect it to the master in the current
     enviroment.
@@ -198,7 +199,7 @@ def bootstrap_minion(master=None):
         {% endfor -%}
 
     """
-    _bootstrap_salt(master, roles)
+    _bootstrap_salt(**kwargs)
 
 
 @vm_task

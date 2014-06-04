@@ -168,6 +168,7 @@ def create(name=None):
         abort(red(e))
     configure_fabric_for_host(name)  # TODO: we used to pass server object, check impact
     wait_for_shell()
+    return vm
 
 
 @vm_task

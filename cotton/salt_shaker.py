@@ -47,6 +47,72 @@ class Shaker(object):
     Recursively walk formula-requirements.txt and manully pull in those
     versions of the specified formulas.
 
+    How it works
+    ------------
+
+    Salt Shaker works by creating an extra file root that must be copied up to
+    your salt server and added to the master config.
+
+    Setup
+    ~~~~~
+
+    **1. Define the vendor_formulas task**
+
+    In your fabfile you will need to add a snippet like this to vendor the
+    formulas just before you rsync them to the server::
+
+        @task
+        def vendor_formulas():
+            from cotton.salt_shaker import Shaker
+            shaker = Shaker(root_dir=os.path.dirname(env.real_fabfile))
+            shaker.install_requirements()
+
+    We recommend that you call this at the start of your rsync task too.
+
+    **2. Rsync the managed root to the salt master **
+
+    You will also need to ensure that you rsync the ``vendor/_root`` directory
+    up to your salt master, with symlinks resolved, not copied as is::
+
+        vendor_formulas()
+        sudo('mkdir -p /srv/salt-formulas')
+        smart_rsync_project('/srv/salt-formulas', 'vendor/_root/', for_user='root', extra_opts='-L', delete=True)
+
+    Your complete rsync task will now look something like this::
+
+        @task
+        def rsync():
+            vendor_formulas()
+
+            sudo('mkdir -p /srv/salt /srv/salt-formulas /srv/pillar')
+
+            smart_rsync_project('/srv/salt-formulas', 'vendor/_root/', for_user='root', extra_opts='-L', delete=True)
+            smart_rsync_project('/srv/salt', 'salt/', for_user='root', extra_opts='-L', delete=True)
+            smart_rsync_project('/srv/pillar', '{}/'.format(get_pillar_location()), for_user='root', extra_opts='-L', delete=True)
+
+
+    **3. Add the extra root to the salt master config**
+
+    You will need to add this new, managed root directory to the list of paths
+    that the salt master searches for files under. We recommend adding it to
+    the end so that any thing can be overridden by a matching file in
+    ``salt/_libs`` if needed (but hopefully it shouldn't be).
+
+    The bits of your `/etc/salt/master` config should look like this::
+
+        file_roots:
+          base:
+            - /srv/salt
+            - /srv/salt/_libs
+            - /srv/salt-formulas
+
+        fileserver_backend:
+          - roots
+
+
+    The formula-requirements.txt file
+    ---------------------------------
+
     The format of the file is simply a list of git-cloneable urls with an
     optional revision specified on the end. At the moment the only form a
     version comparison accepted is `==`. The version can be a tag, a branch
@@ -65,6 +131,8 @@ class Shaker(object):
         git@github.com:ministryofjustice/sensu-formula.git
         git@github.com:ministryofjustice/rabbitmq-formula.git
         git@github.com:saltstack-formulas/users-formula.git
+
+
     """
 
     def __init__(self, root_dir, salt_root_path='vendor',

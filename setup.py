@@ -12,6 +12,7 @@ setup(
     description='',
     long_description=__doc__,
     packages=find_packages(),
+    package_data={'cotton': ['share/*']},
     namespace_packages=['cotton'],
     zip_safe=False,
     platforms='any',

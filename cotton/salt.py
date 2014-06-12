@@ -42,7 +42,7 @@ def _get_projects_location():
     return os.path.abspath(os.path.join(fab_location, '../config/projects/'))
 
 
-def get_rendered_pillar_location():
+def get_rendered_pillar_location(pillar_dir=None, projects_location=None):
     """
     Returns path to rendered pillar.
     Use to render pillars written in jinja locally not to upload unwanted data to network.
@@ -56,19 +56,24 @@ def get_rendered_pillar_location():
     from jinja2 import FileSystemLoader
     from jinja2.exceptions import TemplateNotFound
 
-    assert env.project
-    projects_location = _get_projects_location()
+    if projects_location is None:
+        projects_location = _get_projects_location()
+
+    if pillar_dir is None:
+        if "pillar_dir" in env:
+            pillar_dir = env.pillar_dir
+        else:
+            assert env.project, "env.project or env.pillar_dir must be specified"
+            pillar_dir = os.path.join(projects_location, env.project, 'pillar')
 
     jinja_env = Environment(
-        loader=FileSystemLoader([os.path.join(projects_location, env.project, 'pillar'),
-                                 projects_location]))
+        loader=FileSystemLoader([pillar_dir, projects_location]))
 
     # let's get rendered top.sls for configured project
     try:
         top_sls = jinja_env.get_template('top.sls').render(env=env)
     except TemplateNotFound:
-        print(red("Missing top.sls in pillar location. Skipping rendering."))
-        return None
+        raise RuntimeError("Missing top.sls in pillar location. Skipping rendering.")
 
     top_content = yaml.load(top_sls)
 

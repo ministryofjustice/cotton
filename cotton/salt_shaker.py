@@ -5,6 +5,7 @@ import re
 import tempfile
 import shutil
 import stat
+import errno
 
 from git import Repo
 from git.exc import GitCommandError
@@ -343,12 +344,12 @@ class Shaker(object):
                         self.logger.info("linking {}".format(sourcefile))
                         os.symlink(sourcefile, targetfile)
                     except OSError as e:
-                        if e.errno == 17:  # already exist
+                        if e.errno == errno.EEXIST:  # already exist
                             self.logger.info(
                                 "skipping to linking {} as there is a file with higher priority already there".
                                 format(sourcefile))
                         else:
-                            raise OSError
+                            raise
 
     def _fetch_and_resolve_sha(self, formula, repo):
         """

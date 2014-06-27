@@ -5,6 +5,7 @@ import re
 import tempfile
 import shutil
 import stat
+import errno
 
 from git import Repo
 from git.exc import GitCommandError
@@ -134,6 +135,7 @@ class Shaker(object):
 
 
     """
+    dynamic_modules_dirs = ['_modules', '_grains', '_renderers', '_returners', '_states']
 
     def __init__(self, root_dir, salt_root_path='vendor',
                  clone_path='formula-repos', salt_root='_root'):
@@ -312,15 +314,42 @@ class Shaker(object):
             self.logger.debug("{formula[name]} is at {formula[revision]}".format(formula=formula))
 
         source = os.path.join(repo_dir, formula['name'])
-        if not os.path.exists(source):
-            raise RuntimeError("%s: Source '%s' does not exist" % (formula['name'], source))
         if os.path.exists(target):
             raise RuntimeError("%s: Target '%s' conflicts with something else" % (formula['name'], target))
 
-        relative_source = os.path.relpath(source, os.path.dirname(target))
-        os.symlink(relative_source, target)
+        if os.path.exists(source):
+            relative_source = os.path.relpath(source, os.path.dirname(target))
+            os.symlink(relative_source, target)
+
+        self._link_dynamic_modules(formula)
 
         return repo_dir, target
+
+    def _link_dynamic_modules(self, formula):
+        repo_dir = os.path.join(self.repos_dir, formula['name'] + "-formula")
+
+        for libdir in self.dynamic_modules_dirs:
+            targetdir = os.path.join(self.roots_dir, libdir)
+            sourcedir = os.path.join(repo_dir, libdir)
+
+            relative_source = os.path.relpath(sourcedir, targetdir)
+
+            if os.path.isdir(sourcedir):
+                for name in os.listdir(sourcedir):
+                    if not os.path.isdir(targetdir):
+                        os.mkdir(targetdir)
+                    sourcefile = os.path.join(relative_source, name)
+                    targetfile = os.path.join(targetdir, name)
+                    try:
+                        self.logger.info("linking {}".format(sourcefile))
+                        os.symlink(sourcefile, targetfile)
+                    except OSError as e:
+                        if e.errno == errno.EEXIST:  # already exist
+                            self.logger.info(
+                                "skipping to linking {} as there is a file with higher priority already there".
+                                format(sourcefile))
+                        else:
+                            raise
 
     def _fetch_and_resolve_sha(self, formula, repo):
         """

@@ -231,6 +231,9 @@ def salt(selector, args, parse_highstate=False):
     param args: i.e. state.highstate
     """
 
+    def dump_json(data):
+        return json.dumps(data, indent=4)
+
     def stream_jsons(data):
         """
         ugly semi (assumes that input is a pprinted jsons' sequence) salt specific json stream parser as generator of jsons
@@ -242,7 +245,7 @@ def salt(selector, args, parse_highstate=False):
             data_buffer.append(line)
             if line.startswith("}"):
                 if data_buffer:
-                    yield json.loads("".join(data_buffer))
+                    yield json.loads("".join(data_buffer), object_pairs_hook=collections.OrderedDict)
                     data_buffer = []
         assert not data_buffer
 
@@ -276,27 +279,30 @@ def salt(selector, args, parse_highstate=False):
                 else:
                     for state, state_fields in states.iteritems():
                         summary[server]['states'] = summary[server].get('states', 0) + 1
+                        color = green
                         if state_fields['changes']:
+                            color = yellow
                             summary[server]['changed'] = summary[server].get('changed', 0) + 1
                         if not state_fields['result']:
+                            color = red
                             summary[server]['failed'] = summary[server].get('failed', 0) + 1
                             failed += 1
-                            print(red("{}: ".format(state), bold=True))
-                            print(red(pformat(state_fields)))
+                            print(color("{}: ".format(state), bold=True))
+                            print(color(dump_json(state_fields)))
                         else:
                             summary[server]['passed'] = summary[server].get('passed', 0) + 1
-                            print(green("{}: ".format(state), bold=True))
-                            print(green(pformat(state_fields)))
+                            print(color("{}: ".format(state), bold=True))
+                            print(color(dump_json(state_fields)))
 
         if failed:
             print
             print(red("Summary", bold=True))
-            print(red(pformat(summary)))
+            print(red(dump_json(summary)))
             abort('One of states has failed')
         else:
             print
             print(green("Summary", bold=True))
-            print(green(pformat(summary)))
+            print(green(dump_json(summary)))
 
         # let's cleanup but only if everything was ok
         sudo('rm {}'.format(remote_temp))

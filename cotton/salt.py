@@ -13,6 +13,8 @@ import yaml
 import json
 
 from StringIO import StringIO
+from collections import defaultdict
+from collections import OrderedDict
 from pprint import pformat
 
 from fabric.api import env, put, sudo, task, get, abort
@@ -226,7 +228,6 @@ def salt(selector, args, parse_highstate=False):
     `salt` / `salt-call` wrapper that:
     - checks if `env.saltmaster` is set to select between `salt` or `salt-call` command
     - checks for output state.highstate and aborts on failure
-    - checks if tty is available (for jenkins usage)
     param selector: i.e.: '*', -G 'roles:foo'
     param args: i.e. state.highstate
     """
@@ -241,56 +242,49 @@ def salt(selector, args, parse_highstate=False):
         """
         data_buffer = []
         for line in data.splitlines():
-            assert isinstance(line, str)
+            assert isinstance(line, basestring)
             data_buffer.append(line)
-            if line.startswith("}"):
+            if line.startswith("}"):  # as salt output is a pretty json this means - end of json blob
                 if data_buffer:
-                    yield json.loads("".join(data_buffer), object_pairs_hook=collections.OrderedDict)
+                    yield json.loads("".join(data_buffer), object_pairs_hook=OrderedDict)
                     data_buffer = []
         assert not data_buffer
-
-    if sys.stdout.isatty():
-        is_color_arg = ''
-    else:
-        is_color_arg = '--no-color'
 
     if parse_highstate:
         remote_temp = sudo('mktemp')
         # Fabric merges stdout & stderr for sudo. So output is useless
         # Therefore we will store the stdout in json format to separate file and parse it later
         if 'saltmaster' in env and env.saltmaster:
-            sudo("salt {} {} {} --out=json | tee {}".format(selector, args, is_color_arg, remote_temp))
+            sudo("salt {} {} --out=json | tee {}".format(selector, args, remote_temp))
         else:
-            sudo("salt-call {} {} --out=json | tee {}".format(args, is_color_arg, remote_temp))
+            sudo("salt-call {} --out=json | tee {}".format(args, remote_temp))
 
         sudo("chmod 664 {}".format(remote_temp))
         output_fd = StringIO()
         get(remote_temp, output_fd)
         output = output_fd.getvalue()
         failed = 0
-        summary = {}
+        summary = defaultdict(lambda: defaultdict(lambda: 0))
 
         for out_parsed in stream_jsons(output):
             for server, states in out_parsed.iteritems():
-                if server not in summary:
-                    summary[server] = {}
                 if isinstance(states, list):
                     failed += 1
                 else:
                     for state, state_fields in states.iteritems():
-                        summary[server]['states'] = summary[server].get('states', 0) + 1
+                        summary[server]['states'] += 1
                         color = green
                         if state_fields['changes']:
                             color = yellow
-                            summary[server]['changed'] = summary[server].get('changed', 0) + 1
+                            summary[server]['changed'] += 1
                         if not state_fields['result']:
                             color = red
-                            summary[server]['failed'] = summary[server].get('failed', 0) + 1
+                            summary[server]['failed'] += 1
                             failed += 1
                             print(color("{}: ".format(state), bold=True))
                             print(color(dump_json(state_fields)))
                         else:
-                            summary[server]['passed'] = summary[server].get('passed', 0) + 1
+                            summary[server]['passed'] += 1
                             print(color("{}: ".format(state), bold=True))
                             print(color(dump_json(state_fields)))
 
@@ -308,7 +302,7 @@ def salt(selector, args, parse_highstate=False):
         sudo('rm {}'.format(remote_temp))
     else:
         if 'saltmaster' in env and env.saltmaster:
-            sudo("salt {} {} {}".format(selector, args, is_color_arg))
+            sudo("salt {} {}".format(selector, args))
         else:
-            sudo("salt-call {} {}".format(args, is_color_arg))
+            sudo("salt-call {}".format(args))
 

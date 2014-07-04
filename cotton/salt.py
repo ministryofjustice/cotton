@@ -106,16 +106,16 @@ get_pillar_location = get_rendered_pillar_location
 
 
 @vm_task
-def reset_roles(roles=None):
+def reset_roles(salt_roles=None):
     """
     Reset salt role grains to the values specified in the provider_zone
     configuration for the current host
     """
-    if roles is None:
+    if salt_roles is None:
         assert(env.vm)
         info = env.provider.info(env.vm)
-        roles = info.get('roles', [])
-    sudo('salt-call --local grains.setval roles "{}"'.format(roles))
+        salt_roles = info.get('roles', [])
+    sudo('salt-call --local grains.setval roles "{}"'.format(salt_roles))
 
 
 def _reconfig_minion(salt_server):
@@ -141,7 +141,7 @@ def _reconfig_minion(salt_server):
     sudo("/bin/chown root:root /etc/salt/minion")
 
 
-def _bootstrap_salt(master=None, flags='', install_type='', roles=None):
+def _bootstrap_salt(master=None, flags='', install_type='', salt_roles=None):
     if master is None:
         (server,) = env.provider.filter(name="master")
         if server:
@@ -154,7 +154,7 @@ def _bootstrap_salt(master=None, flags='', install_type='', roles=None):
     bootstrap_fh = StringIO(pkgutil.get_data(__package__, 'share/bootstrap-salt.sh'))
     put(bootstrap_fh, "/tmp/bootstrap-salt.sh")
     sudo("bash /tmp/bootstrap-salt.sh {} -A {} {}".format(flags, master, install_type))
-    reset_roles(roles)
+    reset_roles(salt_roles)
 
 
 @vm_task
@@ -203,7 +203,7 @@ def bootstrap_minion(**kwargs):
 
 
 @vm_task
-def bootstrap_master(roles=None):
+def bootstrap_master(salt_roles=None, master='localhost', flags='-M', **kwargs):
     """
     Bootstrap a minimal salt master on the current server (as configued via
     ``workon``).
@@ -216,4 +216,4 @@ def bootstrap_master(roles=None):
     sudo("/bin/chown root:root /etc/salt/master")
 
     # Pass the -M flag to ensure master is created
-    _bootstrap_salt(master='localhost', flags='-M', roles=roles)
+    _bootstrap_salt(master=master, flags=flags, salt_roles=salt_roles, **kwargs)

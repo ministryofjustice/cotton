@@ -11,6 +11,8 @@ from git import Repo
 from git.exc import GitCommandError
 from textwrap import dedent
 
+from fabric.api import local, task, env
+
 
 SSH_WRAPPER_SCRIPT = """#!/bin/bash
 ssh -o VisualHostKey=no "$@"
@@ -489,3 +491,28 @@ class Shaker(object):
             print(" done")
 
             have_updated = True
+
+
+@task
+def shaker():
+    """
+    utility task to initiate Shaker in the most typical way
+    """
+    shaker_instance = Shaker(root_dir=os.path.dirname(env.real_fabfile))
+    shaker_instance.install_requirements()
+
+
+@task
+def freeze():
+    """
+    utility task to check current versions
+    """
+    local('for d in vendor/formula-repos/*; do echo -n "$d "; git --git-dir=$d/.git describe --tags 2>/dev/null || git --git-dir=$d/.git rev-parse --short HEAD; done', shell='/bin/bash')
+
+
+@task
+def check():
+    """
+    utility task to check if there are no new versions available
+    """
+    local('for d in vendor/formula-repos/*; do (export GIT_DIR=$d/.git; git fetch --tags -q 2>/dev/null; echo -n "$d: "; latest_tag=$(git describe --tags $(git rev-list --tags --max-count=1 2>/dev/null) 2>/dev/null || echo "no tags"); current=$(git describe --tags 2>/dev/null || echo "no tags"); echo "\tlatest: $latest_tag  current: $current"); done', shell='/bin/bash')

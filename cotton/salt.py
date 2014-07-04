@@ -6,15 +6,18 @@ root/
 """
 
 import os
+import sys
 import pkgutil
 import tempfile
 import yaml
+import json
 
 from StringIO import StringIO
+from collections import defaultdict
+from collections import OrderedDict
+from pprint import pformat
 
-from fabric.api import env, put, sudo
-
-from fabric.api import task  # noqa
+from fabric.api import env, put, sudo, task, get, abort
 
 from cotton.colors import red, yellow, green
 from cotton.api import vm_task, get_provider_zone_config
@@ -112,7 +115,7 @@ def reset_roles(salt_roles=None):
     configuration for the current host
     """
     if salt_roles is None:
-        assert(env.vm)
+        assert env.vm
         info = env.provider.info(env.vm)
         salt_roles = info.get('roles', [])
     sudo('salt-call --local grains.setval roles "{}"'.format(salt_roles))
@@ -122,9 +125,9 @@ def _reconfig_minion(salt_server):
     """
 
     """
-    assert(salt_server)
-    assert(env.vm_name)
-    assert(env.domainname)
+    assert salt_server
+    assert env.vm_name
+    assert env.domainname
     # The base-image may have a minion_id already defined - delete it
     sudo('/bin/rm -f /etc/salt/minion_id')
 
@@ -217,3 +220,89 @@ def bootstrap_master(salt_roles=None, master='localhost', flags='-M', **kwargs):
 
     # Pass the -M flag to ensure master is created
     _bootstrap_salt(master=master, flags=flags, salt_roles=salt_roles, **kwargs)
+
+
+@task
+def salt(selector, args, parse_highstate=False):
+    """
+    `salt` / `salt-call` wrapper that:
+    - checks if `env.saltmaster` is set to select between `salt` or `salt-call` command
+    - checks for output state.highstate and aborts on failure
+    param selector: i.e.: '*', -G 'roles:foo'
+    param args: i.e. state.highstate
+    """
+
+    def dump_json(data):
+        return json.dumps(data, indent=4)
+
+    def stream_jsons(data):
+        """
+        ugly semi (assumes that input is a pprinted jsons' sequence) salt specific json stream parser as generator of jsons
+        #TODO: work on stream instead of big data blob
+        """
+        data_buffer = []
+        for line in data.splitlines():
+            assert isinstance(line, basestring)
+            data_buffer.append(line)
+            if line.startswith("}"):  # as salt output is a pretty json this means - end of json blob
+                if data_buffer:
+                    yield json.loads("".join(data_buffer), object_pairs_hook=OrderedDict)
+                    data_buffer = []
+        assert not data_buffer
+
+    if parse_highstate:
+        remote_temp = sudo('mktemp')
+        # Fabric merges stdout & stderr for sudo. So output is useless
+        # Therefore we will store the stdout in json format to separate file and parse it later
+        if 'saltmaster' in env and env.saltmaster:
+            sudo("salt {} {} --out=json | tee {}".format(selector, args, remote_temp))
+        else:
+            sudo("salt-call {} --out=json | tee {}".format(args, remote_temp))
+
+        sudo("chmod 664 {}".format(remote_temp))
+        output_fd = StringIO()
+        get(remote_temp, output_fd)
+        output = output_fd.getvalue()
+        failed = 0
+        summary = defaultdict(lambda: defaultdict(lambda: 0))
+
+        for out_parsed in stream_jsons(output):
+            for server, states in out_parsed.iteritems():
+                if isinstance(states, list):
+                    failed += 1
+                else:
+                    for state, state_fields in states.iteritems():
+                        summary[server]['states'] += 1
+                        color = green
+                        if state_fields['changes']:
+                            color = yellow
+                            summary[server]['changed'] += 1
+                        if not state_fields['result']:
+                            color = red
+                            summary[server]['failed'] += 1
+                            failed += 1
+                            print(color("{}: ".format(state), bold=True))
+                            print(color(dump_json(state_fields)))
+                        else:
+                            summary[server]['passed'] += 1
+                            print(color("{}: ".format(state), bold=True))
+                            print(color(dump_json(state_fields)))
+
+        if failed:
+            print
+            print(red("Summary", bold=True))
+            print(red(dump_json(summary)))
+            abort('One of states has failed')
+        else:
+            print
+            print(green("Summary", bold=True))
+            print(green(dump_json(summary)))
+
+        # let's cleanup but only if everything was ok
+        sudo('rm {}'.format(remote_temp))
+    else:
+        if 'saltmaster' in env and env.saltmaster:
+            sudo("salt {} {}".format(selector, args))
+        else:
+            sudo("salt-call {}".format(args))
+

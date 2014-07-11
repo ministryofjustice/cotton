@@ -119,7 +119,9 @@ def reset_roles(salt_roles=None):
     Reset salt role grains to the values specified in the provider_zone
     configuration for the current host
     """
-    if salt_roles is None:
+    if isinstance(salt_roles, basestring):
+        salt_roles = salt_roles.split(';')
+    elif salt_roles is None:
         assert env.vm
         info = env.provider.info(env.vm)
         salt_roles = info.get('roles', [])

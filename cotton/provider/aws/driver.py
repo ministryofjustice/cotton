@@ -55,6 +55,16 @@ class AWSProvider(Provider):
         if 'security_groups' in zone_config:
             run_instances_args['security_groups'] = zone_config['security_groups']
 
+        if 'ebs_size' in zone_config or 'ebs_type' in zone_config:
+            dev_sda1 = boto.ec2.blockdevicemapping.EBSBlockDeviceType(delete_on_termination=True)
+            if 'ebs_size' in zone_config:
+                dev_sda1.size = zone_config['ebs_size'] # size in Gigabytes
+            if 'ebs_type' in zone_config:
+                dev_sda1.volume_type = zone_config['ebs_type']
+            bdm = boto.ec2.blockdevicemapping.BlockDeviceMapping()
+            bdm['/dev/sda1'] = dev_sda1
+            run_instances_args['block_device_map'] = bdm
+
         reservation = self.connection.run_instances(**run_instances_args)
         instance = reservation.instances[0]
 

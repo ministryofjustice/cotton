@@ -52,8 +52,19 @@ class AWSProvider(Provider):
         run_instances_args['image_id'] = zone_config['image_id']
         run_instances_args['key_name'] = zone_config['provisioning_ssh_key_name']
         run_instances_args['instance_type'] = zone_config['instance_type']
-        if 'security_groups' in zone_config:
-            run_instances_args['security_groups'] = zone_config['security_groups']
+
+        if 'subnet_id' in zone_config:
+            print("Found subnet_id - creating instance within VPC")
+            run_instances_args['subnet_id'] = zone_config['subnet_id']
+            if 'security_groups' in zone_config:
+                raise ValueError("VPC does not accept security_groups - use security_groups_ids instead")
+            if 'security_groups_ids' in zone_config:
+                run_instances_args['security_group_ids'] = zone_config['security_groups_ids']
+        else:
+            if 'security_groups_ids' in zone_config:
+                raise ValueError("Non VPC does not accept security_group_ids - use security_groups instead")
+            if 'security_groups' in zone_config:
+                run_instances_args['security_groups'] = zone_config['security_groups']
 
         if 'root_ebs_size' in zone_config or 'root_ebs_type' in zone_config:
             dev_sda1 = boto.ec2.blockdevicemapping.EBSBlockDeviceType(delete_on_termination=True)

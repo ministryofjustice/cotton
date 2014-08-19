@@ -140,7 +140,7 @@ class Shaker(object):
     dynamic_modules_dirs = ['_modules', '_grains', '_renderers', '_returners', '_states']
 
     def __init__(self, root_dir, salt_root_path='vendor',
-                 clone_path='formula-repos', salt_root='_root'):
+                 clone_path='formula-repos', salt_root='_root', formula_requirements_path = None):
         """
         There is a high chance you don't want to change the paths here.
 
@@ -149,13 +149,16 @@ class Shaker(object):
         (i.e., root_dir + salt_root_path + salt_root)
         """
 
+        if formula_requirements_path is None:
+          formula_requirements_path = 'formula-requirements.txt'
+
         self.roots_dir = os.path.join(root_dir, salt_root_path, salt_root)
         self.repos_dir = os.path.join(root_dir, salt_root_path, clone_path)
 
         self._setup_logger()
         self.fetched_formulas = {}
         self.parsed_requirements_files = set()
-        self.first_requirement_file = os.path.join(root_dir, 'formula-requirements.txt')
+        self.first_requirement_file = os.path.join(root_dir, formula_requirements_path)
         self.requirements_files = [
             self.first_requirement_file
         ]

@@ -90,7 +90,8 @@ def get_rendered_pillar_location(pillar_dir=None, projects_location=None):
                 # We force this file to be relative in case jinja failed rendering
                 # a variable. This would make the filename start with / and instead of
                 # writing under dest_location it will try to write in /
-                files_to_render.append('./' + file_short.replace('.', '/') + '.sls')
+                if isinstance(file_short, str):
+                    files_to_render.append('./' + file_short.replace('.', '/') + '.sls')
 
     # render and save templates
     for template_file in files_to_render:

@@ -139,11 +139,18 @@ def _reconfig_minion(salt_server):
     # The base-image may have a minion_id already defined - delete it
     sudo('/bin/rm -f /etc/salt/minion_id')
 
-    fqdn = "{}.{}".format(env.vm_name, env.domainname)
+    if '.' in env.vm_name:
+        fqdn = env.vm_name
+    else:
+        fqdn = "{}.{}".format(env.vm_name, env.domainname)
     minion_contents = {
         'master': salt_server,
         'id': fqdn
     }
+    put(StringIO(fqdn), '/etc/hostname', use_sudo=True, mode=0644)
+    # sudo("sed -i /$(hostname)/{}/".format(fqdn))
+    sudo("hostname {}".format(fqdn))
+
 
     minion_configIO = StringIO(repr(minion_contents))
     env.sudo_user = 'root'

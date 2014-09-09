@@ -263,9 +263,9 @@ def salt(selector, args, parse_highstate=False):
         # Fabric merges stdout & stderr for sudo. So output is useless
         # Therefore we will store the stdout in json format to separate file and parse it later
         if 'saltmaster' in env and env.saltmaster:
-            sudo("salt {} {} --out=json | tee {}".format(selector, args, remote_temp))
+            sudo("salt {} {} --out=json -t 60| tee {}".format(selector, args, remote_temp))
         else:
-            sudo("salt-call {} --out=json | tee {}".format(args, remote_temp))
+            sudo("salt-call {} --out=json -t 60| tee {}".format(args, remote_temp))
 
         sudo("chmod 664 {}".format(remote_temp))
         output_fd = StringIO()
@@ -310,7 +310,7 @@ def salt(selector, args, parse_highstate=False):
         sudo('rm {}'.format(remote_temp))
     else:
         if 'saltmaster' in env and env.saltmaster:
-            sudo("salt {} {}".format(selector, args))
+            sudo("salt {} {} -t 60".format(selector, args))
         else:
-            sudo("salt-call {}".format(args))
+            sudo("salt-call {} -t 60".format(args))
 

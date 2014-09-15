@@ -231,7 +231,7 @@ def bootstrap_master(salt_roles=None, master='localhost', flags='-M', **kwargs):
 
 
 @task
-def salt(selector, args, parse_highstate=False):
+def salt(selector, args, parse_highstate=False, timeout=60):
     """
     `salt` / `salt-call` wrapper that:
     - checks if `env.saltmaster` is set to select between `salt` or `salt-call` command
@@ -263,9 +263,9 @@ def salt(selector, args, parse_highstate=False):
         # Fabric merges stdout & stderr for sudo. So output is useless
         # Therefore we will store the stdout in json format to separate file and parse it later
         if 'saltmaster' in env and env.saltmaster:
-            sudo("salt {} {} --out=json | tee {}".format(selector, args, remote_temp))
+            sudo("salt {} {} --out=json -t {}| tee {}".format(selector, args, timeout, remote_temp))
         else:
-            sudo("salt-call {} --out=json | tee {}".format(args, remote_temp))
+            sudo("salt-call {} --out=json -t {}| tee {}".format(args, timeout, remote_temp))
 
         sudo("chmod 664 {}".format(remote_temp))
         output_fd = StringIO()
@@ -310,7 +310,7 @@ def salt(selector, args, parse_highstate=False):
         sudo('rm {}'.format(remote_temp))
     else:
         if 'saltmaster' in env and env.saltmaster:
-            sudo("salt {} {}".format(selector, args))
+            sudo("salt {} {} -t {}".format(selector, args, timeout))
         else:
-            sudo("salt-call {}".format(args))
+            sudo("salt-call {} -t {}".format(args, timeout))
 

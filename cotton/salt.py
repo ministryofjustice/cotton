@@ -265,7 +265,7 @@ def salt(selector, args, parse_highstate=False, timeout=60):
         if 'saltmaster' in env and env.saltmaster:
             sudo("salt {} {} --out=json -t {}| tee {}".format(selector, args, timeout, remote_temp))
         else:
-            sudo("salt-call {} --out=json -t {}| tee {}".format(args, timeout, remote_temp))
+            sudo("salt-call {} --out=json | tee {}".format(args, remote_temp))
 
         sudo("chmod 664 {}".format(remote_temp))
         output_fd = StringIO()
@@ -312,5 +312,5 @@ def salt(selector, args, parse_highstate=False, timeout=60):
         if 'saltmaster' in env and env.saltmaster:
             sudo("salt {} {} -t {}".format(selector, args, timeout))
         else:
-            sudo("salt-call {} -t {}".format(args, timeout))
+            sudo("salt-call {}".format(args))
 

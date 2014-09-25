@@ -167,7 +167,18 @@ def rsync_project(
 
 @task
 @needs_host
-def ssh(ssh_opts=''):
+def ssh(ssh_opts='', remote_cmd=None):
+    """
+    This is the default ssh function for accessing various environments.
+    It handles connections that require a gateway like Skyscape.
+    You can optionally pass ssh options `ssh_opts` e.g
+    `ssh_opts =' -o StrictHostKeyChecking=no'`
+    The `remote_cmd` parameter allows you to run an interactive command against
+    a remote host, for example, you can use nsenter to run a shell inside
+    a docker container as follows:
+    `remote_cmd = 'nsenter --target $PID --mount --uts --ipc --net --pid'`
+
+    """
     # Keys
     key_string = ''
     keys = key_filenames()
@@ -199,4 +210,10 @@ def ssh(ssh_opts=''):
         port_string=port_string,
         user_host_string=ssh_host_string(user, host),
         proxy_string=proxy_string)
+
+    # Sometimes we want to run an interactive command against a remote host, for
+    # example nsenter to run a shell inside a running docker container
+    if remote_cmd is not None:
+        cmd = "{} '{}'".format(cmd, remote_cmd)
+
     return local(cmd)

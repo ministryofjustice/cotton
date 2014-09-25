@@ -145,7 +145,7 @@ def _reconfig_minion(salt_server):
         fqdn = "{}.{}".format(env.vm_name, env.domainname)
     minion_contents = {
         'master': salt_server,
-        'id': fqdn
+        'id': str(fqdn),
     }
     put(StringIO(fqdn), '/etc/hostname', use_sudo=True, mode=0644)
     sudo("echo '127.0.0.1 {}' >> /etc/hosts".format(fqdn))

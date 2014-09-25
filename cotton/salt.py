@@ -148,7 +148,7 @@ def _reconfig_minion(salt_server):
         'id': fqdn
     }
     put(StringIO(fqdn), '/etc/hostname', use_sudo=True, mode=0644)
-    # sudo("sed -i /$(hostname)/{}/".format(fqdn))
+    sudo("echo '127.0.0.1 {}' >> /etc/hosts".format(fqdn))
     sudo("hostname {}".format(fqdn))
 
 

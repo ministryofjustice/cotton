@@ -12,7 +12,6 @@ from __future__ import print_function
 import yaml
 import os
 import copy
-import re
 
 from fabric.api import env
 from cotton.colors import *
@@ -76,7 +75,7 @@ def get_config():
                              'preferred': '../config/projects/{}/project.yaml'.format(env.project)})
         config_files.append({'path': '../config/projects/{}/project.yaml'.format(env.project)})
 
-    if 'provider_zone' in env and re.search('vagrant', env.provider_zone):
+    if 'provider_zone' in env and 'vagrant' in env.provider_zone:
         config_files.append({'path': 'vagrant/project.yaml'})
 
     os_env_cotton_config = os.environ.get('COTTON_CONFIG', None)

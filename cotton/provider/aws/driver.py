@@ -81,10 +81,10 @@ class AWSProvider(Provider):
 
         instance.add_tag("Name", name)
         instance.add_tag("creator", getpass.getuser())
-	if 'environment' in env:
-            instance.add_tag("env", env.environment)
-	if 'project' in env:
-            instance.add_tag("project", env.project)
+
+        if 'tags' in kwargs:
+            for key in kwargs['tags']:
+                instance.add_tag(key, kwargs['tags'][key])
 
         print("Waiting for instance to run",)
         while instance.state != 'running':

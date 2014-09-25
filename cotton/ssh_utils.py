@@ -167,7 +167,7 @@ def rsync_project(
 
 @task
 @needs_host
-def ssh(ssh_opts=''):
+def ssh(ssh_opts='', remote_cmd=None):
     # Keys
     key_string = ''
     keys = key_filenames()
@@ -199,4 +199,10 @@ def ssh(ssh_opts=''):
         port_string=port_string,
         user_host_string=ssh_host_string(user, host),
         proxy_string=proxy_string)
+
+    # Sometimes we want to run an interactive command against a remote host, for
+    # example nsenter to run a shell inside a running docker container
+    if remote_cmd is not None:
+        cmd = "{} '{}'".format(cmd, remote_cmd)
+
     return local(cmd)

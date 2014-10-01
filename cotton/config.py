@@ -75,6 +75,9 @@ def get_config():
                              'preferred': '../config/projects/{}/project.yaml'.format(env.project)})
         config_files.append({'path': '../config/projects/{}/project.yaml'.format(env.project)})
 
+    if 'provider_zone' in env and 'vagrant' in env.provider_zone:
+        config_files.append({'path': 'vagrant/cotton.yaml'})
+
     os_env_cotton_config = os.environ.get('COTTON_CONFIG', None)
     if os_env_cotton_config:
         config_files.append({'path': os_env_cotton_config})

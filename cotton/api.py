@@ -163,6 +163,16 @@ def create(name=None):
     vm_spec['name'] = name
 
     try:
+        vm_spec['tags']
+    except KeyError:
+        vm_spec['tags'] = {}
+
+    if 'environment' in env:
+        vm_spec['tags']['env'] = env.environment
+    if 'project' in env:
+        vm_spec['tags']['project'] = env.project
+
+    try:
         vm = env.provider.create(**vm_spec)
     except ValueError as e:
         abort(red(e))

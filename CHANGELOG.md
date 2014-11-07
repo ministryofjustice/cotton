@@ -1,3 +1,7 @@
+## Version 0.3.0
+
+Lots of changes that we did a bad job documenting :(
+
 ## Version 0.2.5
 
 * Salt Shaker will now link custom states,modules,grain facts etc. into the managed root dir so we can write them in our formulas.

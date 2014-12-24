@@ -9,6 +9,10 @@ from fabric.api import task
 
 
 def ssh_gateway(user, host):
+
+    if "gateway_user" in env and env.gateway_user:
+        user = env.gateway_user
+
     if host.find('@') != -1:
         remote_prefix = host
     elif host.count(':') > 1:
@@ -164,7 +168,6 @@ def rsync_project(
         print("[%s] rsync_project: %s" % (env.host_string, cmd))
     return local(cmd, capture=capture)
 
-
 @task
 @needs_host
 def ssh(ssh_opts='', remote_cmd=None):
@@ -196,6 +199,8 @@ def ssh(ssh_opts='', remote_cmd=None):
         gw_port_string = "-p %s" % gw_port
         if '@' in env.gateway:
             gw_user_host_string = env.gateway
+        elif "gateway_user" in env and env.gateway_user:
+            gw_user_host_string = ssh_host_string(env.gateway_user, env.gateway)
         else:
             gw_user_host_string = ssh_host_string(user, env.gateway)
         proxy_string = '-o "ProxyCommand ssh {key_string} {ssh_opts} {gw_port_string} {gw_user_host_string} nc %h %p"'.format(

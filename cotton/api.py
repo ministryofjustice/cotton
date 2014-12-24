@@ -135,7 +135,10 @@ def configure_fabric_for_host(name):
             env.key_filename = zone_config['ssh_key']
 
     if 'gateway' in zone_config:
-        env.gateway = '{}@{}'.format(env.user, zone_config['gateway'])
+        if 'gateway_user' in env and env.gateway_user:
+            env.gateway = '{}@{}'.format(env.gateway_user, zone_config['gateway'])
+        else:
+            env.gateway = '{}@{}'.format(env.user, zone_config['gateway'])
 
 
 def dict_stringize_keys(data):

@@ -102,7 +102,7 @@ def configure_fabric_for_host(name):
 
     if zone_config['gateway'] than it will be configured
     if zone_config['ssh_key'] is supplied then we use it
-    if we are in provisioning mode than zone_config['provisioning_ssh_key'] & zone_config['provisioning_user'] is used
+    if we are in provisioning mode than zone_config['provisioning_ssh_key'] & zone_config['provisioning_user'] & zone_config['provisioning_password'] is used
 
     updated variables:
     env.provider
@@ -128,8 +128,20 @@ def configure_fabric_for_host(name):
     zone_config = get_provider_zone_config()
 
     if env.provisioning:
-        env.key_filename = zone_config['provisioning_ssh_key']
-        env.user = zone_config['provisioning_user']
+        if 'provisioning_user' in zone_config:
+            env.user = zone_config['provisioning_user']
+        else:
+            print(yellow("No 'provisioning_user' defined in zone config"))
+
+        if 'provisioning_ssh_key' in zone_config:
+            env.key_filename = zone_config['provisioning_ssh_key']
+        else:
+            print(yellow("No 'provisioning_ssh_key' defined in zone config"))
+            print(yellow("Falling back to 'provisioning_password'"))
+            if 'provisioning_password' in zone_config:
+                env.password = zone_config['provisioning_password']
+            else:
+                print(yellow("No 'provisioning_password' defined in zone config"))
     else:
         if 'ssh_key' in zone_config:
             env.key_filename = zone_config['ssh_key']

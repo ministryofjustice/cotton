@@ -1,4 +1,9 @@
+## Version 0.3.2
+
+ * Bump version in setup.py
+
 ## Version 0.3.1
+
  * Allow to disable key based authentication during provisioning
  * Allow to manage gateway/jump box user separately
  * Add vitruvius file

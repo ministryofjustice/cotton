@@ -1,3 +1,11 @@
+## Version 0.3.1
+ * Allow to disable key based authentication during provisioning
+ * Allow to manage gateway/jump box user separately
+ * Add vitruvius file
+ * Allow to provide cotton config for vagrant
+ * Allow to configure EBS
+ * Bugfixes
+
 ## Version 0.2.5
 
 * Salt Shaker will now link custom states,modules,grain facts etc. into the managed root dir so we can write them in our formulas.

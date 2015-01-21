@@ -1,4 +1,4 @@
-## Version 0.3.x
+## Version 0.3.3
 
  * Allow AWS driver to supply other boto connection objects
 

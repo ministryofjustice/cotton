@@ -1,3 +1,7 @@
+## Version 0.3.x
+
+ * Allow AWS driver to supply other boto connection objects
+
 ## Version 0.3.2
 
  * Bump version in setup.py

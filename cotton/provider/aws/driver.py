@@ -21,10 +21,10 @@ from cotton.config import get_provider_zone_config
 class AWSProvider(Provider):
 
     connection = None
-    cloudformation_connection = None
-    route53_connection = None
-    s3_connection = None
-    iam_connection = None
+    _cloudformation_connection = None
+    _route53_connection = None
+    _s3_connection = None
+    _iam_connection = None
 
     acl = dict()
 
@@ -41,42 +41,60 @@ class AWSProvider(Provider):
 
         assert self.connection is not None
 
-    def get_cloudformation_connection(self):
+    @property
+    def ec2_connection(self):
+        """
+        just to keep naming convention
+        :return: the same as self.connection
+        """
+        return self.connection
+
+    @property
+    def cloudformation_connection(self):
         """
         :return: boto cloudformation connection object based on __init__ credentials
         """
-        if self.cloudformation_connection is None:
-            self.cloudformation_connection = boto.cloudformation.connect_to_region(
+        if self._cloudformation_connection is None:
+            self._cloudformation_connection = boto.cloudformation.connect_to_region(
                 aws_access_key_id=self.acl['aws_access_key_id'],
                 aws_secret_access_key=self.acl['aws_secret_access_key'],
                 region_name=self.acl['region_name'])
-        return self.cloudformation_connection
+        return self._cloudformation_connection
 
-    def get_route53_connection(self):
+    @property
+    def route53_connection(self):
         """
         :return: boto route53 connection object based on __init__ credentials
         """
-        if self.route53_connection is None:
-            self.route53_connection = boto.connect_route53(
+        if self._route53_connection is None:
+            self._route53_connection = boto.connect_route53(
                 aws_access_key_id=self.acl['aws_access_key_id'],
                 aws_secret_access_key=self.acl['aws_secret_access_key'])
-        return self.route53_connection
+        return self._route53_connection
 
-    def get_s3_connection(self):
-        if self.s3_connection is None:
-            self.s3_connection = boto.s3.connect_to_region(
+    @property
+    def s3_connection(self):
+        """
+        :return: boto s3 connection object based on __init__ credentials
+        """
+        if self._s3_connection is None:
+            self._s3_connection = boto.s3.connect_to_region(
                 aws_access_key_id=self.acl['aws_access_key_id'],
                 aws_secret_access_key=self.acl['aws_secret_access_key'],
                 region_name=self.acl['region_name'])
-        return self.s3_connection
+        return self._s3_connection
 
-    def get_iam_connection(self):
-        if self.iam_connection is None:
-            self.iam_connection = boto.iam.connect_to_region(
+    @property
+    def iam_connection(self):
+        """
+        :return: boto iam connection object based on __init__ credentials
+        """
+        if self._iam_connection is None:
+            self._iam_connection = boto.iam.connect_to_region(
                 aws_access_key_id=self.acl['aws_access_key_id'],
                 aws_secret_access_key=self.acl['aws_secret_access_key'],
                 region_name=self.acl['region_name'])
-        return self.iam_connection
+        return self._iam_connection
 
     def status(self):
         instances = []

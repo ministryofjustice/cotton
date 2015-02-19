@@ -1,3 +1,8 @@
+## Version 0.4.0
+
+ * Enable env.project to be a path
+ * Remove deprecated ../config.user
+
 ## Version 0.3.3
 
  * Allow AWS driver to supply other boto connection objects

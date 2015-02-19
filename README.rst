@@ -14,7 +14,7 @@ It solves three problems:
 Depends on following fabric env variables::
 
     env.provider_zone = 'aws_dev'
-    env.project = 'foo-dev'
+    env.project = 'foo-dev'  # can also be a path
     env.vm_name = 'foo.master'
 
     #uncomment to always use shared provisioning key (only for early dev)
@@ -31,9 +31,31 @@ Assumes that your config directory is next to directory containing fabfile.py::
     |   `-- fabfile.py
     |
     |-- ~/.cotton.yaml / ${COTTON_CONFIG}
-    |-- config/projects/{project}/project.yaml
-    `-- config/cotton.yaml
+    |-- config/projects/{env.project}/cotton.yaml
+    ...
+    |-- config/projects/{env.project|split('/')[1]}/cotton.yaml
+    |-- config/projects/{env.project|split('/')[0]}/cotton.yaml
+    |-- config/projects/cotton.yaml
+    |-- config/cotton.yaml
+    |-- application-deployment/vagrant/cotton.yaml  # deprecated in favour to application-deployment/cotton.yaml
+    `-- application-deployment/cotton.yaml
 
+    I.e.:
+    env.project = nomis/pvb/production
+
+    cotton.yaml search path will look like:
+    root/
+    |
+    |-- ~/.cotton.yaml / ${COTTON_CONFIG}
+    |
+    |-- config/projects/nomis/pvb/production/cotton.yaml
+    |-- config/projects/nomis/pvb/cotton.yaml
+    |-- config/projects/nomis/cotton.yaml
+    |
+    |-- config/projects/cotton.yaml
+    |-- config/cotton.yaml
+    |
+    `-- application-deployment/cotton.yaml
 
 
 example ~/.cotton.yaml::
@@ -71,5 +93,5 @@ driver status
 -------------
 
 :aws: fully implemented
-:static: fully implemented (a good fallback for no api)
+:static: fully implemented (a good fallback if api access is not available)
 :vcloud: only selection, status, filtering, termination, no provisioning part

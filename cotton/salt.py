@@ -42,13 +42,19 @@ def _get_projects_location():
     return os.path.abspath(os.path.join(fab_location, '../config/projects/'))
 
 
-def get_rendered_pillar_location(pillar_dir=None, projects_location=None):
+def get_rendered_pillar_location(pillar_dir=None, projects_location=None, parse_top_sls=True):
     """
     Returns path to rendered pillar.
     Use to render pillars written in jinja locally not to upload unwanted data to network.
 
     i.e. you can use constructs like:
     {% include 'opg-lpa-dev/pillar/services.sls' %}
+
+    If you want salt to later render pillars with grain context use constructs like:
+    {% raw %} {{grains.get('roles')}} {% endraw %}
+    {{" {{grains.get('roles')}} "}}
+
+    To allow for server side templating of top.sls, you will need set: `parse_top_sls=False`
 
     In case there is no top.sls in pillar root than it returns: None
     """
@@ -69,45 +75,53 @@ def get_rendered_pillar_location(pillar_dir=None, projects_location=None):
     jinja_env = Environment(
         loader=FileSystemLoader([pillar_dir, projects_location]))
 
-    # let's get rendered top.sls for configured project
-    try:
-        top_sls = jinja_env.get_template('top.sls').render(env=env)
-    except TemplateNotFound:
-        raise RuntimeError("Missing top.sls in pillar location. Skipping rendering.")
-
-    top_content = yaml.load(top_sls)
-
+    files_to_render = []
     dest_location = tempfile.mkdtemp()
 
-    with open(os.path.join(dest_location, 'top.sls'), 'w') as f:
-        f.write(top_sls)
+    if parse_top_sls:
+        # let's parse top.sls to only select files being referred in top.sls
+        try:
+            top_sls = jinja_env.get_template('top.sls').render(env=env)
+        except TemplateNotFound:
+            raise RuntimeError("Missing top.sls in pillar location. Skipping rendering.")
 
-    # get list of files referenced by top.sls
-    files_to_render = []
-    for k0, v0 in top_content.iteritems():
-        for k1, v1 in v0.iteritems():
-            for file_short in v1:
-                # We force this file to be relative in case jinja failed rendering
-                # a variable. This would make the filename start with / and instead of
-                # writing under dest_location it will try to write in /
-                if isinstance(file_short, str):
-                    files_to_render.append('./' + file_short.replace('.', '/') + '.sls')
+        top_content = yaml.load(top_sls)
+
+        filename = os.path.join(dest_location, 'top.sls')
+        with open(filename, 'w') as f:
+            print("Pillar template_file: {} --> {}".format('top.sls', filename))
+            f.write(top_sls)
+
+        for k0, v0 in top_content.iteritems():
+            for k1, v1 in v0.iteritems():
+                for file_short in v1:
+                    # We force this file to be relative in case jinja failed rendering
+                    # a variable. This would make the filename start with / and instead of
+                    # writing under dest_location it will try to write in /
+                    if isinstance(file_short, str):
+                        files_to_render.append('./' + file_short.replace('.', '/') + '.sls')
+    else:
+        # let's select all files from pillar directory
+        for root, dirs, files in os.walk(pillar_dir):
+            rel_path = os.path.relpath(root, pillar_dir)
+            for file_name in files:
+                files_to_render.append(os.path.join(rel_path, file_name))
 
     # render and save templates
     for template_file in files_to_render:
         filename = os.path.abspath(os.path.join(dest_location, template_file))
-        print(yellow("Pillar template_file: {} --> {}".format(template_file, filename)))
+        print("Pillar template_file: {} --> {}".format(template_file, filename))
         if not os.path.isdir(os.path.dirname(filename)):
             os.makedirs(os.path.dirname(filename))
         try:
             template_rendered = jinja_env.get_template(template_file).render(env=env)
         except TemplateNotFound:
             template_rendered = ''
-            print(yellow("Pillar template_file not found: {} --> {}".format(template_file, filename)))
+            print(red("Pillar template_file not found: {} --> {}".format(template_file, filename)))
         with open(os.path.join(dest_location, template_file), 'w') as f:
             f.write(template_rendered)
 
-    print(green("Pillar was rendered in: {}".format(dest_location)))
+    print(green("Pillar was successfully rendered in: {}".format(dest_location)))
     return dest_location
 
 

@@ -1,3 +1,7 @@
+## Version 0.5.0
+
+ * Allow to disable top.sls parsing when shipping pillars
+
 ## Version 0.4.0
 
  * Enable env.project to be a path

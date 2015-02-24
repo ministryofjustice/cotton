@@ -235,5 +235,9 @@ class AWSProvider(Provider):
         return info_dict
 
     def host_string(self, server):
-        #TODO: where to select user/provisioning mode
-        return self.info(server)["hostname"]
+        if self.info(server)["hostname"]:
+            # public dns entry is available
+            return self.info(server)["hostname"]
+        else:
+            # only private ip is available so user will need to be using jumpbox
+            return self.info(server)["ip"]

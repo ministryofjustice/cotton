@@ -1,3 +1,7 @@
+## Version 0.5.1
+
+ * Allow to ssh through jumpbox to VMs w/o public dns entry (EC2)
+
 ## Version 0.5.0
 
  * Allow to disable top.sls parsing when shipping pillars

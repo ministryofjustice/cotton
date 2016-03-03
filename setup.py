@@ -4,7 +4,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='cotton',
-    version='0.5.0',
+    version='0.5.2',
     url='http://github.com/ministryofjustice/cotton',
     license='TBD',
     author='',
